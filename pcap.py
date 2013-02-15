@@ -199,12 +199,39 @@ class UDPHeader(PacketPortion):
     destination_port = property(__get_destination_port, 
         doc="string form of destination port number")
         
-class DNSQuery(PacketPortion):
+class DNSQuery():
+    def __init__(self, qname, qtype, qclass):
+        self.qname = qname
+        self.qtype = qtype
+        self.qclass = qclass
 
 class DNSResourceRecord(PacketPortion):
+    pass
 
 class DNSData(PacketPortion):
     # based on RFC -- version referenced available at http://www.networksorcery.com/enp/protocol/dns.htm.
+    def __init__(self, packet_portion, header):
+        # treat data portion as array of unsigned chars
+        fmt = '>%iB' % len(packet_portion)  
+        self.struct_ = struct.Struct(fmt)
+        super( DNSData, self ).__init__(packet_portion)
+
+        # make a list of queries
+        self.queries = []
+        pos = 0
+        for i in range(header.num_questions):
+            qname = ''
+            while int(self.elems[pos]) != 0:
+                if qname != '':
+                    qname += '.'
+                num_chars = int(self.elems[pos])
+                pos += 1
+                qname += binascii.b2a_hex(packet_portion[pos:pos+num_chars]).decode("hex")
+                pos += num_chars
+            # TODO: get type and class
+            # TODO: make object
+
+        # TODO: make a list of RRs
 
 class DNSHeader(PacketPortion):
     # based on RFC -- version referenced available at http://www.networksorcery.com/enp/protocol/dns.htm.
@@ -297,6 +324,7 @@ class NetworkPacket(object):
             # look for DNS packets
             if self.application == 'DNS':
                 self.dns_header = DNSHeader(self.data[42:54])
+                self.dns_data = DNSData(self.data[54:self.length], self.dns_header)
                 print 'DNS %s' % self.dns_header.message_type
                 print 'num questions: %i' % self.dns_header.num_questions
                 print 'num answer RRs: %i' % self.dns_header.num_answer_rrs
