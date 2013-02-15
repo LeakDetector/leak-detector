@@ -46,7 +46,7 @@ def main(options, args):
     try:
         i = 1
         for packet in listener.get_packets(filter):
-            print i, packet,'\n'
+            print i, packet.length, packet,'\n'
             i += 1
     except (KeyboardInterrupt, SystemExit), e:
          sys.exit()

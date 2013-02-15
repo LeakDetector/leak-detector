@@ -198,6 +198,37 @@ class UDPHeader(PacketPortion):
         doc="string form of source port number")
     destination_port = property(__get_destination_port, 
         doc="string form of destination port number")
+        
+class DNSQuery(PacketPortion):
+
+class DNSResourceRecord(PacketPortion):
+
+class DNSData(PacketPortion):
+    # based on RFC -- version referenced available at http://www.networksorcery.com/enp/protocol/dns.htm.
+
+class DNSHeader(PacketPortion):
+    # based on RFC -- version referenced available at http://www.networksorcery.com/enp/protocol/dns.htm.
+    struct_ = struct.Struct('>HHHHHH') 
+
+    def _get_message_type(self):
+        return 'Query' if self.elems[1] >> 15 == 0 else 'Response'
+    message_type = property(_get_message_type)
+
+    def _get_num_questions(self):
+        return int(self.elems[2])
+    num_questions = property(_get_num_questions)
+
+    def _get_num_answer_rrs(self):
+        return int(self.elems[3])
+    num_answer_rrs = property(_get_num_answer_rrs)
+    
+    def _get_num_authority_rrs(self):
+        return int(self.elems[5])
+    num_authority_rrs = property(_get_num_authority_rrs)
+    
+    def _get_num_additional_rrs(self):
+        return int(self.elems[4])
+    num_additional_rrs = property(_get_num_additional_rrs)
 
 class NetworkPacket(object):
     # ENUM of port => application mappings. munged from:
@@ -240,8 +271,12 @@ class NetworkPacket(object):
                 raise PCapCorruptPacket
             else:
                 self.transport_header = TCPHeader(self.data[34:54])
+                self.payload = self.data[54:self.length]  #TODO: right upper bound?
         elif self.ip_header.protocol == 'UDP':
             self.transport_header = UDPHeader(self.data[34:42])
+            self.payload = self.data[42:self.length]  #TODO: right upper bound?
+        else:
+            self.payload = self.data[34:self.length]
             
         # set some attributes at the NetworkPacket level so that
         # self.__dict__ can be used within __str__. might as well make
@@ -258,6 +293,16 @@ class NetworkPacket(object):
             self.source_port = self.transport_header.source_port
             self.dest_port = self.transport_header.destination_port
             self.application = self._get_app_str()
+
+            # look for DNS packets
+            if self.application == 'DNS':
+                self.dns_header = DNSHeader(self.data[42:54])
+                print 'DNS %s' % self.dns_header.message_type
+                print 'num questions: %i' % self.dns_header.num_questions
+                print 'num answer RRs: %i' % self.dns_header.num_answer_rrs
+                print 'num authority RRs: %i' % self.dns_header.num_authority_rrs
+                print 'num additional RRs: %i' % self.dns_header.num_additional_rrs
+
         else:
             self.source_port = self.dest_port = self.application = 'unknown'
 
