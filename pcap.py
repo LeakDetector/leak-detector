@@ -161,7 +161,7 @@ class TCPHeader(PacketPortion):
     SOURCE = 0
     DEST = 1
 
-    # based on RFC -- version referenced available at http://www.networksorcery.com/enp/protocol/ip.htm.
+    # based on RFC -- version referenced available at http://www.networksorcery.com/enp/protocol/tcp.htm.
     struct_ = struct.Struct('>HHLLBBHHH')
 
     def _get_port_str(self, elem):
@@ -181,6 +181,10 @@ class TCPHeader(PacketPortion):
     def _get_ack_num_str(self):
         return str(self.elems[3])
     acknowledgment_number = property(_get_ack_num_str)
+
+    def _get_hdr_len(self):
+        return int(self.elems[4] >> 4) * 4
+    length = property(_get_hdr_len)
     
 class UDPHeader(PacketPortion):
     SOURCE = 0
@@ -198,15 +202,40 @@ class UDPHeader(PacketPortion):
         doc="string form of source port number")
     destination_port = property(__get_destination_port, 
         doc="string form of destination port number")
+
+    def _get_hdr_len(self):
+        return 8
+    length = property(_get_hdr_len)
         
 class DNSQuery():
     def __init__(self, qname, qtype, qclass):
         self.qname = qname
-        self.qtype = qtype
-        self.qclass = qclass
+        self.qtype_ = qtype
+        self.qclass_ = qclass
+
+    TYPE = {
+        01:'A',
+        02:'NS',
+        05:'CNAME',
+        06:'SOA',
+        15:'MX',
+        16:'TXT'
+    }
+
+    CLASS = {
+        01:'IN'
+    }
+
+    def _get_type_str(self):
+        return self.TYPE.get(self.qtype_, self.qtype_)
+    qtype = property(_get_type_str)
+    
+    def _get_class_str(self):
+        return self.CLASS.get(self.qclass_, self.qclass_)
+    qclass = property(_get_class_str)
 
 class DNSResourceRecord(PacketPortion):
-    pass
+    pass  # TODO: finish
 
 class DNSData(PacketPortion):
     # based on RFC -- version referenced available at http://www.networksorcery.com/enp/protocol/dns.htm.
@@ -228,10 +257,11 @@ class DNSData(PacketPortion):
                 pos += 1
                 qname += binascii.b2a_hex(packet_portion[pos:pos+num_chars]).decode("hex")
                 pos += num_chars
-            # TODO: get type and class
-            # TODO: make object
-
-        # TODO: make a list of RRs
+            # get type and class
+            pos += 1  #advance past the null octet marking end of name
+            qtype = int(struct.Struct('>H').unpack(packet_portion[pos:pos+2])[0])
+            qclass = int(struct.Struct('>H').unpack(packet_portion[pos+2:pos+4])[0])
+            self.queries.append(DNSQuery(qname, qtype, qclass))
 
 class DNSHeader(PacketPortion):
     # based on RFC -- version referenced available at http://www.networksorcery.com/enp/protocol/dns.htm.
@@ -256,6 +286,17 @@ class DNSHeader(PacketPortion):
     def _get_num_additional_rrs(self):
         return int(self.elems[4])
     num_additional_rrs = property(_get_num_additional_rrs)
+
+class HTTPHeader(dict):
+    def __init__(self, packet_portion):
+        super( HTTPHeader, self).__init__()
+        for line in packet_portion.split('\r\n'):
+            if ':' in line:
+                key,val = line.split(':', 1)
+                self[key.strip()] = val.strip()
+            elif 'GET' in line:
+                self.method = 'GET'
+                self.URI = line.split(' ')[1]
 
 class NetworkPacket(object):
     # ENUM of port => application mappings. munged from:
@@ -286,7 +327,7 @@ class NetworkPacket(object):
         self.timestamp = \
             datetime.datetime.fromtimestamp(header.contents.ts.tv_sec)
         self.length = header.contents.len
-        self.bytes = [packet[x] for x in range(0, header.contents.len-1)]
+        self.bytes = [packet[x] for x in range(0, header.contents.len)]
         self.data = ''.join(struct.pack('B', b) for b in self.bytes)
         
         self.ethernet_header = EthernetHeader(self.data[0:14])
@@ -320,16 +361,16 @@ class NetworkPacket(object):
             self.source_port = self.transport_header.source_port
             self.dest_port = self.transport_header.destination_port
             self.application = self._get_app_str()
+            self.trans_hdr_len = self.transport_header.length
 
             # look for DNS packets
             if self.application == 'DNS':
                 self.dns_header = DNSHeader(self.data[42:54])
                 self.dns_data = DNSData(self.data[54:self.length], self.dns_header)
-                print 'DNS %s' % self.dns_header.message_type
-                print 'num questions: %i' % self.dns_header.num_questions
-                print 'num answer RRs: %i' % self.dns_header.num_answer_rrs
-                print 'num authority RRs: %i' % self.dns_header.num_authority_rrs
-                print 'num additional RRs: %i' % self.dns_header.num_additional_rrs
+
+            # look for HTTP packets
+            if self.application == 'HTTP' and self.length > 34 + self.transport_header.length: # check length because it could just be a TCP handshake
+                self.http_header = HTTPHeader(self.data[34+self.transport_header.length:self.length])
 
         else:
             self.source_port = self.dest_port = self.application = 'unknown'
@@ -344,7 +385,7 @@ class NetworkPacket(object):
         str_ = """%(timestamp)s
            ETHERNET \t Sender MAC: %(sender_mac)s\t\tTarget MAC: %(target_mac)s
                  IP \t Source IP: %(source_ip)s\t\tDestination IP: %(dest_ip)s\t\tVersion: %(ip_version)s\t\tProtocol: %(ip_protocol)s\t\t
-          TRANSPORT \t Source Port: %(source_port)s\t\t\tDestination Port: %(dest_port)s \t\t\tApplication: %(application)s""" % self.__dict__
+          TRANSPORT \t Source Port: %(source_port)s\t\t\tDestination Port: %(dest_port)s \t\tLength: %(trans_hdr_len)s\t\tApplication: %(application)s""" % self.__dict__
         if self.ip_header.protocol == 'TCP':
             str_ = '\n'.join((str_, "\t   TCP INFO \t Sequence Number: %s\t\tAcknowledgement Number %s"\
                 % (self.transport_header.sequence_number, self.transport_header.acknowledgment_number)))

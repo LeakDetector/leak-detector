@@ -4,6 +4,7 @@ import time
 import re
 from pcap import *
 from optparse import OptionParser
+from userstats import *
 
 
 # Setup command line options
@@ -43,16 +44,21 @@ def main(options, args):
         print e
         sys.exit(1)
         
+
+    # Create a UserStats object
+    stats = UserStats()
+
+    # Process packet trace
     try:
-        i = 1
         for packet in listener.get_packets(filter):
-            print i, packet.length, packet,'\n'
-            i += 1
+            #print packet.length, packet,'\n'
+            stats.update(packet)
     except (KeyboardInterrupt, SystemExit), e:
          sys.exit()
     finally:
         listener.close()
         
+    print stats
        
 
 if __name__ == '__main__':
