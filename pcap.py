@@ -290,6 +290,9 @@ class DNSHeader(PacketPortion):
 class HTTPHeader(dict):
     def __init__(self, packet_portion):
         super( HTTPHeader, self).__init__()
+        self.method = ''
+        self.URI = ''
+        self.status = ''
         for line in packet_portion.split('\r\n'):
             if ':' in line:
                 key,val = line.split(':', 1)
@@ -297,6 +300,8 @@ class HTTPHeader(dict):
             elif 'GET' in line:
                 self.method = 'GET'
                 self.URI = line.split(' ')[1]
+            elif '200 OK' in line:
+                self.status = '200 OK'
 
 class NetworkPacket(object):
     # ENUM of port => application mappings. munged from:

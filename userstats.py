@@ -31,9 +31,10 @@ class UserStats(object):
 
     def __init__(self):
         self.os = ''
-        self.language = ''
-        self.browsers = []
-        self.visited_domains = []
+        self.languages = set()
+        self.browsers = set()
+        self.visited_domains = set()
+        self.visited_subdomains = set()
     
     def update(self, packet):
         try:
@@ -51,7 +52,9 @@ class UserStats(object):
         # add all queried domains to a list
         if dns_header.message_type == 'Query':
             for query in dns_data.queries:
-                self.visited_domains.append(query.qname)
+                self.visited_subdomains = self.visited_subdomains | {query.qname}
+                if '.' in query.qname:
+                    self.visited_domains = self.visited_domains | {query.qname.split('.')[-2] + '.' + query.qname.split('.')[-1]}
 
     def analyze_http_header(self, http_header):
 
@@ -64,16 +67,16 @@ class UserStats(object):
                         self.os = WINDOWS[token]
 
             if 'Safari' in http_header['User-Agent']:
-                self.browsers.append('Safari')
+                self.browsers = self.browsers | {'Safari'}
             elif 'Firefox' in http_header['User-Agent']:
-                self.browsers.append('Firefox')
+                self.browsers = self.browsers | {'Firefox'}
             elif 'Chrome' in http_header['User-Agent']:
-                self.browsers.append('Chrome')
+                self.browsers = self.browsers | {'Chrome'}
         except KeyError:
             pass
 
         try:
-            self.language = self.LANGUAGE[http_header['Accept-Language'][0:2]]
+            self.languages = self.languages | {self.LANGUAGE[http_header['Accept-Language'][0:2]]}
         except KeyError:
             pass
 
@@ -81,7 +84,7 @@ class UserStats(object):
         str_ = """The following data is available to anyone on your network:
 GENERAL
   OS: %(os)s
-  Language: %(language)s
+  Language: %(languages)s
   Browsers: %(browsers)s
 
 VISITED DOMAINS\n %(visited_domains)s""" % self.__dict__

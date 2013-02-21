@@ -25,14 +25,14 @@ def filter(packet):
     return True
 
 def main(options, args):
-    print "******************************************************"
-    print "*                                                    *"
-    print "*              WELCOME TO Leak Detector              *"
-    print "*                                                    *"
-    print "*                   by David Naylor                  *"
-    print "*                                                    *"
-    print "******************************************************"
-    print
+    #print "******************************************************"
+    #print "*                                                    *"
+    #print "*              WELCOME TO Leak Detector              *"
+    #print "*                                                    *"
+    #print "*                   by David Naylor                  *"
+    #print "*                                                    *"
+    #print "******************************************************"
+    #print
     
     
     try:
