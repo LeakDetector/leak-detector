@@ -25,16 +25,10 @@ def filter(packet):
     return True
 
 def main(options, args):
-    #print "******************************************************"
-    #print "*                                                    *"
-    #print "*              WELCOME TO Leak Detector              *"
-    #print "*                                                    *"
-    #print "*                   by David Naylor                  *"
-    #print "*                                                    *"
-    #print "******************************************************"
-    #print
     
-    
+    ##
+    ## STEP ONE: Analyze individual packets
+    ##
     try:
         # Create PCap object
         # Offline network capture
@@ -57,6 +51,11 @@ def main(options, args):
          sys.exit()
     finally:
         listener.close()
+
+
+    ##
+    ## STEP TWO: Analyze TCP streams
+    ##
         
     print stats
        
