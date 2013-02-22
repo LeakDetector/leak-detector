@@ -1,4 +1,5 @@
 import subprocess
+import re
 
 PORTS = {
     'http':80,
@@ -36,22 +37,28 @@ class TCPStream(object):
 
         # grab the info we want
         self.ip_addresses = (info[0].split(':')[0], info[2].split(':')[0])
-        self.ports =        (port_as_int(info[0].split(':')[1]), port_as_int(info[2].split(':')[1]))
+        self.ports = (port_as_int(info[0].split(':')[1]), port_as_int(info[2].split(':')[1]))
         self.bytes_exchanged = (int(info[4]), int(info[6]))
         self.frames_exchanged = (int(info[3]), int(info[5]))
         self.duration = float(info[10])
 
     def _get_data(self):
-        # get tcp stream index
-        filter_str = 'ip.addr eq %s and ip.addr eq %s and tcp.port eq %s and tcp.port eq %s' % (self.ip_addresses[0], self.ip_addresses[1], self.ports[0], self.ports[1])
-        p = subprocess.Popen(['tshark', '-r', self.__trace_file, '-R', filter_str, '-T', 'fields', '-e', 'tcp.stream'], shell=False, stdout=subprocess.PIPE)
-        out, err = p.communicate()
-        index = out.split('\n')[0]
-
-        # get the data
-        follow_str = 'follow,tcp,ascii,%s' % index
+        follow_str = 'follow,tcp,ascii,%s:%d,%s:%d' % (self.ip_addresses[0], self.ports[0], self.ip_addresses[1], self.ports[1])
         p = subprocess.Popen(['tshark', '-r', self.__trace_file, '-q', '-z', follow_str], shell=False, stdout=subprocess.PIPE)
         out, err = p.communicate()
-        print out.split('\t')[2]
-        return out
+
+        # Need to remove the section lengths that tshark adds to the ascii outputs:
+        # http://www.wireshark.org/docs/man-pages/tshark.html
+        # We detect that a number is one of these added lengths if 
+        # 1) it is an integer followed by a newline (but NOT \r\n)
+        # 2) it is optionally preceeded by one tab
+        # NOTE: This is probably note foolproof; we may still accidentally match
+        # part of the actual data :(
+        data = re.sub(r'(\n)\t{0,1}[0-9]+\n', r'\1', out)
+        data = '\n'.join(data.split('\n')[6:-2])
+        with open('tmp', 'w') as f:
+            f.write(data)
+        f.closed
+
+        return data
     data = property(_get_data)
