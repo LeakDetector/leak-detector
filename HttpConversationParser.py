@@ -72,7 +72,7 @@ class HttpConversationParser:
                         if message['header']['Content-Encoding'] == 'gzip':  #TODO: handle other encodings
                             data = unzip_html(data)
                         self.__html_pages.append(data)
-                except ValueError:
+                except KeyError:
                     pass
 
     def _get_html_pages(self):

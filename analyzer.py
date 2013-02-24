@@ -5,6 +5,8 @@ import re
 from pcap import *
 from optparse import OptionParser
 from userstats import *
+from TCPAnalyzer import *
+from HttpConversationParser import *
 
 
 # Setup command line options
@@ -25,14 +27,17 @@ def filter(packet):
     return True
 
 def main(options, args):
+
+    trace = args[0]
     
     ##
     ## STEP ONE: Analyze individual packets
     ##
+    print 'Analyzing individual packets...'
     try:
         # Create PCap object
         # Offline network capture
-        listener = OfflineNetworkCapture(args[0])
+        listener = OfflineNetworkCapture(trace)
 
     except (PCapPermissionDeniedException,PCapInvalidNetworkAdapter), e:
         print e
@@ -56,6 +61,14 @@ def main(options, args):
     ##
     ## STEP TWO: Analyze TCP streams
     ##
+    print 'Analyzing TCP streams...'
+    t = TCPAnalyzer(trace)
+
+    print 'Analyzing HTTP conversations...'
+    for http_stream in t.http_streams:
+        parser = HttpConversationParser(http_stream.data)
+        for page in parser.html_pages:
+            stats.update_from_html(page)
         
     print stats
        

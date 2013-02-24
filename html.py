@@ -11,6 +11,6 @@ from TCPAnalyzer import *
 
 t = TCPAnalyzer('traces/cnn.pcap')
 
-parser = HttpConversationParser(t.streams[26].data)
-print len(parser.html_pages)
-print parser.html_pages[0]
+#parser = HttpConversationParser(t.streams[26].data)
+#print len(parser.html_pages)
+#print parser.html_pages[0]

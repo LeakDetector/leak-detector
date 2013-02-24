@@ -35,6 +35,7 @@ class UserStats(object):
         self.browsers = set()
         self.visited_domains = set()
         self.visited_subdomains = set()
+        self.page_titles = set()
     
     def update(self, packet):
         try:
@@ -46,6 +47,12 @@ class UserStats(object):
             self.analyze_http_header(packet.http_header)
         except AttributeError:
             pass
+
+    def update_from_html(self, html):
+        if '<title>' in html:
+            title = html.split('<title>')[1].split('</title>')[0]
+            print title
+            self.page_titles = self.page_titles | {title}
         
 
     def analyze_dns_message(self, dns_header, dns_data):
@@ -87,5 +94,7 @@ GENERAL
   Language: %(languages)s
   Browsers: %(browsers)s
 
-VISITED DOMAINS\n %(visited_domains)s""" % self.__dict__
+VISITED DOMAINS\n %(visited_domains)s
+
+VISITED PAGES\n %(page_titles)s""" % self.__dict__
         return str_

@@ -42,23 +42,18 @@ class TCPStream(object):
         self.frames_exchanged = (int(info[3]), int(info[5]))
         self.duration = float(info[10])
 
+    def __str__(self):
+        return '%s:%d <-> %s:%d' % (self.ip_addresses[0], self.ports[0], self.ip_addresses[1], self.ports[1])
+
     def _get_data(self):
-        follow_str = 'follow,tcp,ascii,%s:%d,%s:%d' % (self.ip_addresses[0], self.ports[0], self.ip_addresses[1], self.ports[1])
+        follow_str = 'follow,tcp,raw,%s:%d,%s:%d' % (self.ip_addresses[0], self.ports[0], self.ip_addresses[1], self.ports[1])
         p = subprocess.Popen(['tshark', '-r', self.__trace_file, '-q', '-z', follow_str], shell=False, stdout=subprocess.PIPE)
         out, err = p.communicate()
 
-        # Need to remove the section lengths that tshark adds to the ascii outputs:
         # http://www.wireshark.org/docs/man-pages/tshark.html
-        # We detect that a number is one of these added lengths if 
-        # 1) it is an integer followed by a newline (but NOT \r\n)
-        # 2) it is optionally preceeded by one tab
-        # NOTE: This is probably note foolproof; we may still accidentally match
-        # part of the actual data :(
-        data = re.sub(r'(\n)\t{0,1}[0-9]+\n', r'\1', out)
-        data = '\n'.join(data.split('\n')[6:-2])
-        with open('tmp', 'w') as f:
-            f.write(data)
-        f.closed
-
+        data = re.sub(r'\t', r'', out)
+        lines = data.split('\n')[6:-2] # TODO check this
+        lines = [line.decode("hex") for line in lines]
+        data = ''.join(lines)
         return data
     data = property(_get_data)

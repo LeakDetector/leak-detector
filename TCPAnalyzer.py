@@ -10,3 +10,8 @@ class TCPAnalyzer(object):
         self.streams = []
         for line in out.split('\n')[5:-2]:
             self.streams.append(TCPStream(line, trace_file))
+
+
+    def _get_http_streams(self):
+        return [stream for stream in self.streams if 80 in stream.ports]
+    http_streams = property(_get_http_streams)
