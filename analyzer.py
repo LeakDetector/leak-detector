@@ -7,6 +7,7 @@ from optparse import OptionParser
 from userstats import *
 from TCPAnalyzer import *
 from HttpConversationParser import *
+from PacketStreamAnalyzer import *
 
 
 # Setup command line options
@@ -29,11 +30,13 @@ def filter(packet):
 def main(options, args):
 
     trace = args[0]
+    stats = UserStats()
     
     ##
     ## STEP ONE: Analyze individual packets
     ##
     print 'Analyzing individual packets...'
+    p = PacketStreamAnalyzer()
     try:
         # Create PCap object
         # Offline network capture
@@ -44,18 +47,24 @@ def main(options, args):
         sys.exit(1)
         
 
-    # Create a UserStats object
-    stats = UserStats()
 
     # Process packet trace
     try:
         for packet in listener.get_packets(filter):
             #print packet.length, packet,'\n'
-            stats.update(packet)
+            p.update(packet)
     except (KeyboardInterrupt, SystemExit), e:
          sys.exit()
     finally:
         listener.close()
+
+    # Updated user stats
+    stats.update_os(p.os)
+    stats.update_languages(p.languages)
+    stats.update_browsers(p.browsers)
+    stats.update_visited_domains(p.visited_domains)
+    stats.update_visited_subdomains(p.visited_subdomains)
+
 
 
     ##
@@ -65,8 +74,15 @@ def main(options, args):
     t = TCPAnalyzer(trace)
 
     print 'Analyzing HTTP conversations...'
-    for http_stream in t.http_streams:
-        parser = HttpConversationParser(http_stream.data)
+    # Don't waste time reconstructing HTTP conversations that don't contain HTML
+    html_streams = []
+    for s in p.tcp_html_streams:
+        sinfo = s.split(',')
+        html_streams += [st for st in t.http_streams if sinfo[0] in st.ip_addresses and sinfo[2] in st.ip_addresses and int(sinfo[1]) in st.ports and int(sinfo[3]) in st.ports]
+
+    for html_stream in html_streams:
+        print '    Analyzing stream: %s' % html_stream
+        parser = HttpConversationParser(html_stream.data)
         for page in parser.html_pages:
             stats.update_from_html(page)
         

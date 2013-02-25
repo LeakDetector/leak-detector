@@ -55,5 +55,10 @@ class TCPStream(object):
         lines = data.split('\n')[6:-2] # TODO check this
         lines = [line.decode("hex") for line in lines]
         data = ''.join(lines)
+
+        #with open('tmp', 'w') as f:
+        #    f.write(data)
+        #f.closed
+
         return data
     data = property(_get_data)

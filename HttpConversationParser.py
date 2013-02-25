@@ -19,16 +19,21 @@ def is_http_header(piece):
 def combine_chunks(body):
     combined_data = ''
     chunks = body.split('\r\n')
+    if len(chunks) == 1:
+        return body
     for i in range(1,len(chunks)):
         if i % 2 == 1:
             combined_data += chunks[i]
     return combined_data
 
 def unzip_html(zipped):
-    zipped = StringIO.StringIO(zipped)
-    gzipper = gzip.GzipFile(fileobj=zipped)
-    html = gzipper.read()
-    return html
+    try:
+        zipped = StringIO.StringIO(zipped)
+        gzipper = gzip.GzipFile(fileobj=zipped)
+        html = gzipper.read()
+        return html
+    except:
+        print 'Error unzipping html'
 
 # Parses an HTTP conversation. Currently only useful for extracting
 # transmitted HTML documents
@@ -55,7 +60,10 @@ class HttpConversationParser:
                     self.messages.append(current_message)
                 current_message = {'header': HTTPHeader(piece)}
             else:
-                current_message['body'] = piece
+                # make sure we haven't already set body (in some places, there was an
+                # extra \r\n, so the real body was overwritten by the second blank one
+                if 'body' not in current_message:
+                    current_message['body'] = piece
         if len(current_message) > 0:
             self.messages.append(current_message)
 
@@ -65,13 +73,14 @@ class HttpConversationParser:
         for message in self.messages:
             if message['header'].status == '200 OK':
                 try:
-                    if message['header']['Content-Type'] == 'text/html':
+                    if 'text/html' in message['header']['Content-Type']:
                         data = message['body']
-                        if message['header']['Transfer-Encoding'] == 'chunked':
+                        if 'Transfer-Encoding' in message['header'] and message['header']['Transfer-Encoding'] == 'chunked':
                             data = combine_chunks(data)
-                        if message['header']['Content-Encoding'] == 'gzip':  #TODO: handle other encodings
+                        if 'gzip' in message['header']['Content-Encoding']:  #TODO: handle other encodings
                             data = unzip_html(data)
-                        self.__html_pages.append(data)
+                            if data:
+                                self.__html_pages.append(data)
                 except KeyError:
                     pass
 
