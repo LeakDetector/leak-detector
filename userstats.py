@@ -1,3 +1,5 @@
+from utils import *
+
 class UserStats(object):
 
     def __init__(self):
@@ -28,10 +30,10 @@ class UserStats(object):
     
     # TODO: move this somewhere
     def update_from_html(self, html):
-        print '    Searching HTML...'
+        dprint('    Searching HTML...')
         if '<title>' in html:
             title = html.split('<title>')[1].split('</title>')[0]
-            print title
+            dprint(title)
             self.page_titles = self.page_titles | {title}
         
 

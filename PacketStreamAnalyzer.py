@@ -1,5 +1,7 @@
 from pcap import *
 
+VERBOSE = False
+
 class PacketStreamAnalyzer(object):
     
     WINDOWS = {
@@ -29,7 +31,8 @@ class PacketStreamAnalyzer(object):
         'it': 'Italian'
     }
 
-    def __init__(self):
+    def __init__(self, verbose=False):
+        VERBOSE = verbose
         self.os = ''
         self.languages = set()
         self.browsers = set()

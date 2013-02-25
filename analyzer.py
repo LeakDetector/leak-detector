@@ -8,10 +8,13 @@ from userstats import *
 from TCPAnalyzer import *
 from HttpConversationParser import *
 from PacketStreamAnalyzer import *
+import utils
+from utils import *
 
 
 # Setup command line options
 parser = OptionParser()
+parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Prints extra information useful for debugging.")
 # MODE
 #parser.add_option("-i", "--interface", action="store", dest="interface", default=None, help="Name of interface to be sniffed")
 #parser.add_option("-f", "--filter", action="store_true", dest="filter_enabled", default=False, help="Runs PacketSniffer in FILTER mode.")
@@ -28,6 +31,7 @@ def filter(packet):
     return True
 
 def main(options, args):
+    utils.VERBOSE = options.verbose
 
     trace = args[0]
     stats = UserStats()
@@ -81,7 +85,7 @@ def main(options, args):
         html_streams += [st for st in t.http_streams if sinfo[0] in st.ip_addresses and sinfo[2] in st.ip_addresses and int(sinfo[1]) in st.ports and int(sinfo[3]) in st.ports]
 
     for html_stream in html_streams:
-        print '    Analyzing stream: %s' % html_stream
+        dprint('    Analyzing stream: %s' % html_stream)
         parser = HttpConversationParser(html_stream.data)
         for page in parser.html_pages:
             stats.update_from_html(page)

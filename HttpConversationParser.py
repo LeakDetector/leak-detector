@@ -2,7 +2,6 @@ import StringIO
 import gzip
 from pcap import HTTPHeader
 
-
 def is_http_header(piece):
     # TODO: This is really dumb
     return 'HTTP' in piece
@@ -54,6 +53,8 @@ class HttpConversationParser:
         self.messages = []
         current_message = {}
         for piece in pieces:
+            if piece == '':
+                continue
             if is_http_header(piece):
                 # add previous message to self
                 if len(current_message) > 0: # make sure this isn't the first iteration

@@ -46,15 +46,27 @@ class TCPStream(object):
         return '%s:%d <-> %s:%d' % (self.ip_addresses[0], self.ports[0], self.ip_addresses[1], self.ports[1])
 
     def _get_data(self):
+        # Use tshark to get the TCP stream's data
+        # http://www.wireshark.org/docs/man-pages/tshark.html
         follow_str = 'follow,tcp,raw,%s:%d,%s:%d' % (self.ip_addresses[0], self.ports[0], self.ip_addresses[1], self.ports[1])
         p = subprocess.Popen(['tshark', '-r', self.__trace_file, '-q', '-z', follow_str], shell=False, stdout=subprocess.PIPE)
         out, err = p.communicate()
 
-        # http://www.wireshark.org/docs/man-pages/tshark.html
-        data = re.sub(r'\t', r'', out)
-        lines = data.split('\n')[6:-2] # TODO check this
-        lines = [line.decode("hex") for line in lines]
-        data = ''.join(lines)
+
+        # Mark where we switch from lines beginning with tabs to lines not beginning
+        # with tabs and vice versa, then remove the tabs
+        data = re.sub(r'(\t.*\n)([^\t])', r'\1<<<<SWITCH>>>>\2', out)
+        data = re.sub(r'(\n[^\t].*\n)(\t)', r'\1<<<<SWITCH>>>>\2', data)
+        data = re.sub(r'\t', r'', data)
+
+        # TODO: clean this up
+        data = ''.join(data.split('\n')[6:-2]) #check -2
+        sections = data.split('<<<<SWITCH>>>>')
+        for i in range(0, len(sections)):
+            lines = sections[i].split('\n')
+            lines = [line.decode("hex") for line in lines]
+            sections[i] = ''.join(lines)
+        data = '\r\n\r\n'.join(sections)
 
         #with open('tmp', 'w') as f:
         #    f.write(data)
