@@ -27,11 +27,14 @@ parser.add_option("-v", "--verbose", action="store_true", dest="verbose", defaul
 #parser.add_option("-l", "--protocol", action="store", dest="filter_protocol", default=None, help="The protocol name used for filtering packets.")
 #parser.add_option("-p", "--port", action="store", dest="filter_port", default=None, help="The port used for filtering packets.")
 
+
+
 def filter(packet):
     return True
 
 def main(options, args):
     utils.VERBOSE = options.verbose
+    utils.create_TMP()
 
     trace = args[0]
     stats = UserStats()
@@ -86,12 +89,14 @@ def main(options, args):
 
     for html_stream in html_streams:
         dprint('    Analyzing stream: %s' % html_stream)
-        parser = HttpConversationParser(html_stream.data)
+        parser = HttpConversationParser(html_stream.http_data)
         for page in parser.html_pages:
             stats.update_from_html(page)
         
     print stats
-       
+
+    # Remove TMP dir
+    #utils.delete_TMP()
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args()

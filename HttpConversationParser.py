@@ -41,32 +41,36 @@ def unzip_html(zipped):
 class HttpConversationParser:
     
     # Takes in raw data consisting of a series of HTTP headers and message bodies
-    # "pieces" (headers and bodies) are separated by \r\n, so split on that first
+    # "pieces" (headers and bodies) are separated by \r\n, so split on that first.
+    # data may be in one chunk, or in separate chunks (one for each direction)
     def __init__(self, data):
         self.__html_pages = []
+        print data
 
-        pieces = data.split('\r\n\r\n')
-
-        # break convo into "messages"; a message is an HTTP header
-        # optionally followed by a message body. Each message is
-        # stored as a list of pieces
         self.messages = []
-        current_message = {}
-        for piece in pieces:
-            if piece == '':
-                continue
-            if is_http_header(piece):
-                # add previous message to self
-                if len(current_message) > 0: # make sure this isn't the first iteration
-                    self.messages.append(current_message)
-                current_message = {'header': HTTPHeader(piece)}
-            else:
-                # make sure we haven't already set body (in some places, there was an
-                # extra \r\n, so the real body was overwritten by the second blank one
-                if 'body' not in current_message:
-                    current_message['body'] = piece
-        if len(current_message) > 0:
-            self.messages.append(current_message)
+
+        for chunk in data:
+            if chunk == None: continue
+            pieces = chunk.split('\r\n\r\n')
+            # break convo into "messages"; a message is an HTTP header
+            # optionally followed by a message body. Each message is
+            # stored as a list of pieces
+            current_message = {}
+            for piece in pieces:
+                if piece == '':
+                    continue
+                if is_http_header(piece):
+                    # add previous message to self
+                    if len(current_message) > 0: # make sure this isn't the first iteration
+                        self.messages.append(current_message)
+                    current_message = {'header': HTTPHeader(piece)}
+                else:
+                    # make sure we haven't already set body (in some places, there was an
+                    # extra \r\n, so the real body was overwritten by the second blank one
+                    if 'body' not in current_message:
+                        current_message['body'] = piece
+            if len(current_message) > 0:
+                self.messages.append(current_message)
 
     # scans messages looking for HTML pages
     # adds the pages it finds to self.__html_pages
