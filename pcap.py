@@ -297,9 +297,12 @@ class HTTPHeader(dict):
             if ':' in line:
                 key,val = line.split(':', 1)
                 self[key.strip()] = val.strip()
-            elif 'GET' in line:
-                self.method = 'GET'
-                self.URI = line.split(' ')[1]
+            elif 'GET' in line and 'HTTP' in line:
+                try:
+                    self.URI = line.split(' ')[1]
+                    self.method = 'GET'
+                except IndexError:
+                    pass # might have just been the text 'GET' and 'HTTP' in some random line
             elif '200 OK' in line:
                 self.status = '200 OK'
 

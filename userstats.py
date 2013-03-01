@@ -25,18 +25,9 @@ class UserStats(object):
     def update_visited_subdomains(self, subdomains):
         self.visited_subdomains = self.visited_subdomains | subdomains
 
-    def updated_page_titles(self, titles):
+    def update_page_titles(self, titles):
         self.page_titles = self.page_titles | titles
     
-    # TODO: move this somewhere
-    def update_from_html(self, html):
-        dprint('    Searching HTML...')
-        if '<title>' in html:
-            title = html.split('<title>')[1].split('</title>')[0]
-            dprint(title)
-            self.page_titles = self.page_titles | {title}
-        
-
 
     def __str__(self):
         str_ = """The following data is available to anyone on your network:

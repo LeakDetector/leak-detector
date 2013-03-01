@@ -8,6 +8,7 @@ from userstats import *
 from TCPAnalyzer import *
 from HttpConversationParser import *
 from PacketStreamAnalyzer import *
+from HTMLAnalyzer import *
 import utils
 from utils import *
 
@@ -91,12 +92,13 @@ def main(options, args):
         dprint('    Analyzing stream: %s' % html_stream)
         parser = HttpConversationParser(html_stream.http_data)
         for page in parser.html_pages:
-            stats.update_from_html(page)
+            ha = HTMLAnalyzer(page)
+            stats.update_page_titles(ha.page_titles)
         
     print stats
 
     # Remove TMP dir
-    #utils.delete_TMP()
+    utils.delete_TMP()
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args()

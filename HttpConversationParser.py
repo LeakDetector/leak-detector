@@ -45,7 +45,6 @@ class HttpConversationParser:
     # data may be in one chunk, or in separate chunks (one for each direction)
     def __init__(self, data):
         self.__html_pages = []
-        print data
 
         self.messages = []
 
@@ -57,7 +56,7 @@ class HttpConversationParser:
             # stored as a list of pieces
             current_message = {}
             for piece in pieces:
-                if piece == '':
+                if piece == '': 
                     continue
                 if is_http_header(piece):
                     # add previous message to self
@@ -67,7 +66,7 @@ class HttpConversationParser:
                 else:
                     # make sure we haven't already set body (in some places, there was an
                     # extra \r\n, so the real body was overwritten by the second blank one
-                    if 'body' not in current_message:
+                    if 'body' not in current_message and 'header' in current_message:
                         current_message['body'] = piece
             if len(current_message) > 0:
                 self.messages.append(current_message)
@@ -82,10 +81,15 @@ class HttpConversationParser:
                         data = message['body']
                         if 'Transfer-Encoding' in message['header'] and message['header']['Transfer-Encoding'] == 'chunked':
                             data = combine_chunks(data)
-                        if 'gzip' in message['header']['Content-Encoding']:  #TODO: handle other encodings
+                        if 'Content-Encoding' not in message['header']:
+                            # Assume it's straight HTML; there's nothing to do
+                            pass
+                        elif 'gzip' in message['header']['Content-Encoding']:  #TODO: handle other encodings
                             data = unzip_html(data)
-                            if data:
-                                self.__html_pages.append(data)
+                        else:
+                            data = None
+                        if data:
+                            self.__html_pages.append(data)
                 except KeyError:
                     pass
 

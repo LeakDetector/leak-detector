@@ -51,7 +51,7 @@ class TCPStream(object):
     ip_addresses = property(_get_ip_addresses)
 
     def __get_http_data(self, e1, e2):
-        fname = '%s-HTTPBODY' % endpoints_to_tcpflow_file_name(e1, e2)
+        fname = '%s' % endpoints_to_tcpflow_file_name(e1, e2)
         fpath = os.path.join(self.__data_dir, fname)
         if os.path.exists(fpath):
             with open(fpath, 'r') as f:
