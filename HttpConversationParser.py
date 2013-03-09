@@ -1,6 +1,7 @@
 import StringIO
 import gzip
 from pcap import HTTPHeader
+from utils import *
 
 def is_http_header(piece):
     # TODO: This is really dumb
@@ -32,7 +33,7 @@ def unzip_html(zipped):
         html = gzipper.read()
         return html
     except:
-        print 'Error unzipping html'
+        dprint('Error unzipping html')
 
 # Parses an HTTP conversation. Currently only useful for extracting
 # transmitted HTML documents
@@ -50,6 +51,7 @@ class HttpConversationParser:
 
         for chunk in data:
             if chunk == None: continue
+            chunk = chunk.replace('HTTP/1', '\r\n\r\nHTTP/1')  # sometimes there's not a \r\n\r\n at the end of a body; the next header connects to it and the whole thing can't be unzipped
             pieces = chunk.split('\r\n\r\n')
             # break convo into "messages"; a message is an HTTP header
             # optionally followed by a message body. Each message is

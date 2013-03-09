@@ -72,6 +72,7 @@ def main(options, args):
     stats.update_browsers(p.browsers)
     stats.update_visited_domains(p.visited_domains)
     stats.update_visited_subdomains(p.visited_subdomains)
+    stats.update_google_queries(p.google_queries)
 
 
 
@@ -93,7 +94,8 @@ def main(options, args):
         parser = HttpConversationParser(html_stream.http_data)
         for page in parser.html_pages:
             ha = HTMLAnalyzer(page)
-            stats.update_page_titles(ha.page_titles)
+            stats.update_page_titles( ha.page_titles )
+            stats.update_amazon_products( ha.amazon_products )
         
     print stats
 

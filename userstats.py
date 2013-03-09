@@ -9,6 +9,8 @@ class UserStats(object):
         self.visited_domains = set()
         self.visited_subdomains = set()
         self.page_titles = set()
+        self.google_queries = set()
+        self.amazon_products = set()
 
     def update_os(self, os):
         self.os = os
@@ -27,6 +29,12 @@ class UserStats(object):
 
     def update_page_titles(self, titles):
         self.page_titles = self.page_titles | titles
+
+    def update_google_queries(self, queries):
+        self.google_queries = self.google_queries | queries
+
+    def update_amazon_products(self, products):
+        self.amazon_products = self.amazon_products | products
     
 
     def __str__(self):
@@ -35,6 +43,10 @@ GENERAL
   OS: %(os)s
   Language: %(languages)s
   Browsers: %(browsers)s
+
+GOOGLE SEARCHES\n %(google_queries)s
+
+BROWSED AMAZON PRODUCTS\n %(amazon_products)s
 
 VISITED DOMAINS\n %(visited_domains)s
 

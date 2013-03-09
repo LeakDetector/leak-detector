@@ -1,3 +1,4 @@
+import utils
 from HttpConversationParser import *
 from TCPAnalyzer import *
 
@@ -9,13 +10,15 @@ from TCPAnalyzer import *
 #print len(parser.html_pages)
 #print parser.html_pages[0]
 
-t = TCPAnalyzer('traces/cnn.pcap')
+utils.create_TMP()
+
+t = TCPAnalyzer('traces/amazon.pcap')
 for stream in t.http_streams:
-    if 63419 in stream.ports:
-        p = HttpConversationParser(stream.data)
-        #for m in p.messages:
-        #    print m
-        #    print '\n\n'
+    if 61717 in stream.ports:
+        p = HttpConversationParser(stream.http_data)
+        for m in p.messages:
+            print m
+            print '\n\n'
         for page in p.html_pages:
             print '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'
             print page
