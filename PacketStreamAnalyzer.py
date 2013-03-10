@@ -1,6 +1,7 @@
 import utils
 from pcap import *
 from HTTPHeaderAnalyzer import HTTPHeaderAnalyzer
+from IPLocator import IPLocator
 
 class PacketStreamAnalyzer(object):
 
@@ -12,6 +13,7 @@ class PacketStreamAnalyzer(object):
         self.visited_subdomains = set()
         self.tcp_html_streams = set()
         self.google_queries = set()
+        self.email_servers = {}
         
         self.__last_query = None
 
@@ -25,6 +27,8 @@ class PacketStreamAnalyzer(object):
             self.analyze_http_header(packet.http_header, packet)
         except AttributeError:
             pass
+
+        self.analyze_email(packet)
 
     def analyze_dns_message(self, dns_header, dns_data):
         # add all queried domains to a list
@@ -48,3 +52,18 @@ class PacketStreamAnalyzer(object):
 
             self.__last_query = h.google_query
             self.google_queries = self.google_queries | {h.google_query}
+
+    def analyze_email(self, packet):
+        EMAIL_PORTS = ( '109', '110', '995', '143', '220', '993', '25', '587', '2525', '3535')
+
+        email_ip = None
+        if packet.source_port in EMAIL_PORTS:
+            email_ip = packet.source_ip
+        elif packet.dest_port in EMAIL_PORTS:
+            email_ip = packet.dest_ip
+
+        # Get location if we haven't seen this mail server yet
+        if email_ip and email_ip not in self.email_servers:
+            location = IPLocator().locate(email_ip)
+            self.email_servers[email_ip] = location
+
