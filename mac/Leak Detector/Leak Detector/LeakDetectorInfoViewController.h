@@ -8,6 +8,9 @@
 
 #import <Cocoa/Cocoa.h>
 
-@interface LeakDetectorInfoViewController : NSViewController
+@interface LeakDetectorInfoViewController : NSViewController <NSOutlineViewDataSource, NSOutlineViewDelegate>
+
+@property (atomic, strong) NSDictionary *leakInfoDict;
+@property (strong) IBOutlet NSOutlineView *leakInfoOutlineView;
 
 @end
