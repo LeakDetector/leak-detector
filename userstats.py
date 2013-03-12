@@ -1,4 +1,4 @@
-from utils import *
+import json
 
 class UserStats(object):
 
@@ -52,3 +52,17 @@ VISITED DOMAINS\n %(visited_domains)s
 
 VISITED PAGES\n %(page_titles)s""" % self.__dict__
         return str_
+
+    def to_json(self):
+        info_dict = {
+            'os': self.os,
+            'languages': list(self.languages),
+            'browsers': list(self.browsers),
+            'visited_domains': list(self.visited_domains),
+            'visited_subdomains': list(self.visited_subdomains),
+            'page_titles': list(self.page_titles),
+            'google_queries': list(self.google_queries),
+            'amazon_products': list(self.amazon_products)
+        }
+        return json.dumps(info_dict)
+    json = property(to_json)

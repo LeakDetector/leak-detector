@@ -1,6 +1,7 @@
 import sys
 import os
 import time
+import logging
 import re
 from pcap import *
 from optparse import OptionParser
@@ -10,7 +11,6 @@ from HttpConversationParser import *
 from PacketStreamAnalyzer import *
 from HTMLAnalyzer import *
 import utils
-from utils import *
 
 
 # Setup command line options
@@ -34,7 +34,13 @@ def filter(packet):
     return True
 
 def main(options, args):
-    utils.VERBOSE = options.verbose
+    # set up logging
+    logging.basicConfig(
+        #filename = fileName,
+        format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName) -26s %(message)s",
+        level = logging.DEBUG if options.verbose else logging.WARNING
+    )
+
     utils.create_TMP()
 
     trace = args[0]
@@ -43,7 +49,7 @@ def main(options, args):
     ##
     ## STEP ONE: Analyze individual packets
     ##
-    print 'Analyzing individual packets...'
+    logging.getLogger(__name__).info('Analyzing individual packets...')
     p = PacketStreamAnalyzer()
     try:
         # Create PCap object
@@ -51,7 +57,7 @@ def main(options, args):
         listener = OfflineNetworkCapture(trace)
 
     except (PCapPermissionDeniedException,PCapInvalidNetworkAdapter), e:
-        print e
+        logging.getLogger(__name__).error(e)
         sys.exit(1)
         
 
@@ -79,10 +85,10 @@ def main(options, args):
     ##
     ## STEP TWO: Analyze TCP streams
     ##
-    print 'Analyzing TCP streams...'
+    logging.getLogger(__name__).info('Analyzing TCP streams...')
     t = TCPAnalyzer(trace)
 
-    print 'Analyzing HTTP conversations...'
+    logging.getLogger(__name__).info('Analyzing HTTP conversations...')
     # Don't waste time reconstructing HTTP conversations that don't contain HTML
     html_streams = []
     for s in p.tcp_html_streams:
@@ -90,14 +96,14 @@ def main(options, args):
         html_streams += [st for st in t.http_streams if sinfo[0] in st.ip_addresses and sinfo[2] in st.ip_addresses and int(sinfo[1]) in st.ports and int(sinfo[3]) in st.ports]
 
     for html_stream in html_streams:
-        dprint('    Analyzing stream: %s' % html_stream)
+        logging.getLogger(__name__).info('    Analyzing stream: %s', html_stream)
         parser = HttpConversationParser(html_stream.http_data)
         for page in parser.html_pages:
             ha = HTMLAnalyzer(page)
             stats.update_page_titles( ha.page_titles )
             stats.update_amazon_products( ha.amazon_products )
         
-    print stats
+    print stats.json
 
     # Remove TMP dir
     utils.delete_TMP()

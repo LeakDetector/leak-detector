@@ -1,6 +1,6 @@
 import httplib
 import re
-from utils import *
+import logging
 
 class IPLocator(object):
     
@@ -12,7 +12,7 @@ class IPLocator(object):
         r = self.__conn.getresponse()
 
         if r.status != 200:
-            dprint('Error locating IP address')
+            logging.getLogger(__name__).warning('Unable to locate IP address %s', ip)
             return
 
         # response consists of a bunch of lines like this:

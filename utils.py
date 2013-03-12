@@ -1,6 +1,7 @@
 import os
 import shutil
 import tempfile
+import logging
 
 TMP = None
 
@@ -14,20 +15,10 @@ def create_TMP():
             shutil.rmtree(TMP)
         os.makedirs(TMP)
     except Exception as e:
-        print e
         TMP = None
-        dprint('Error making temp directory')
+        logging.getLogger(__name__).error('Error making temp directory: %s', e)
 
 def delete_TMP():
     if TMP:
-        dprint('Removing TMP directory: %s' % TMP)
+        logging.getLogger(__name__).info('Removing TMP directory: %s', TMP)
         shutil.rmtree(TMP)
-    
-
-
-
-VERBOSE = False
-
-def dprint(message):
-    if VERBOSE:
-        print message

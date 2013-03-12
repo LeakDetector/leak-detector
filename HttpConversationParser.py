@@ -1,7 +1,7 @@
 import StringIO
 import gzip
+import logging
 from pcap import HTTPHeader
-from utils import *
 
 def is_http_header(piece):
     # TODO: This is really dumb
@@ -32,8 +32,8 @@ def unzip_html(zipped):
         gzipper = gzip.GzipFile(fileobj=zipped)
         html = gzipper.read()
         return html
-    except:
-        dprint('Error unzipping html')
+    except Exception as e:
+        logging.getLogger(__name__).warning('Error unzipping html: %s', e)
 
 # Parses an HTTP conversation. Currently only useful for extracting
 # transmitted HTML documents
