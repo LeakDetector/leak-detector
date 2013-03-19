@@ -3,22 +3,34 @@ import shutil
 import tempfile
 import logging
 
-TMP = None
+def init_temp_dir(tag):
+    __master_temp = tempfile.gettempdir()
 
-def create_TMP():
-    global TMP
-    # If leakdetector TMP dir exists from a previous execution, delete it.
+    # If leakdetector-<tag> dir exists from a previous execution, delete it.
     # Then, either way, make a new one
-    TMP = os.path.join(tempfile.gettempdir(), 'leakdetector')
+    tempdir = os.path.join(__master_temp, 'leakdetector-%s' % tag)
     try:
-        if os.path.exists(TMP):
-            shutil.rmtree(TMP)
-        os.makedirs(TMP)
+        if os.path.exists(tempdir):
+            shutil.rmtree(tempdir)
+        os.makedirs(tempdir)
     except Exception as e:
-        TMP = None
-        logging.getLogger(__name__).error('Error making temp directory: %s', e)
+        logging.getLogger(__name__).error('Error making temp directory: %s\n%s', tempdir, e)
 
-def delete_TMP():
-    if TMP:
-        logging.getLogger(__name__).info('Removing TMP directory: %s', TMP)
-        shutil.rmtree(TMP)
+def get_temp_dir(tag):
+    __master_temp = tempfile.gettempdir()
+
+    tempdir = os.path.join(__master_temp, 'leakdetector-%s' % tag)
+    if not os.path.isdir(tempdir):
+        init_temp_dir(tag)
+
+    return tempdir
+
+def remove_temp_dir(tag):
+    __master_temp = tempfile.gettempdir()
+
+    tempdir = os.path.join(__master_temp, 'leakdetector-%s' % tag)
+    logging.getLogger(__name__).info('Removing TMP directory: %s', tempdir)
+    try:
+        shutil.rmtree(tempdir)
+    except Exception as e:
+        logging.getLogger(__name__).warning('Could not remove temp dir: %s\n%s', tempdir, e)

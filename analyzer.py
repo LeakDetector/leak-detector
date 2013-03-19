@@ -1,6 +1,5 @@
 import sys
 import os
-import time
 import logging
 import re
 from pcap import *
@@ -16,36 +15,13 @@ import utils
 # Setup command line options
 parser = OptionParser()
 parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Prints extra information useful for debugging.")
-# MODE
-#parser.add_option("-i", "--interface", action="store", dest="interface", default=None, help="Name of interface to be sniffed")
-#parser.add_option("-f", "--filter", action="store_true", dest="filter_enabled", default=False, help="Runs PacketSniffer in FILTER mode.")
-## SNIFF mode options
-#parser.add_option("-t", "--transcript", action="store_true", dest="save_transcript", default=False, help="Saves a transcript of your sniffing session (which can be used for filtering later).")
-#parser.add_option("-n", "--seconds", action="store", dest="runtime_seconds", default=None, help="Specify the number of seconds for which you'd like to sniff.")
-## FILTER mode options
-#parser.add_option("-s", "--source", action="store", dest="filter_source_ip", default=None, help="The source IP used for filtering packets.")
-#parser.add_option("-d", "--dest", action="store", dest="filter_destination_ip", default=None, help="The destination IP used for filtering packets.")
-#parser.add_option("-l", "--protocol", action="store", dest="filter_protocol", default=None, help="The protocol name used for filtering packets.")
-#parser.add_option("-p", "--port", action="store", dest="filter_port", default=None, help="The port used for filtering packets.")
-
 
 
 def filter(packet):
     return True
-
-def main(options, args):
-    # set up logging
-    logging.basicConfig(
-        #filename = fileName,
-        format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName) -26s %(message)s",
-        level = logging.DEBUG if options.verbose else logging.WARNING
-    )
-
-    utils.create_TMP()
-
-    trace = args[0]
-    stats = UserStats()
     
+
+def analyze_trace(trace, stats):
     ##
     ## STEP ONE: Analyze individual packets
     ##
@@ -65,7 +41,6 @@ def main(options, args):
     # Process packet trace
     try:
         for packet in listener.get_packets(filter):
-            #print packet.length, packet,'\n'
             p.update(packet)
     except (KeyboardInterrupt, SystemExit), e:
          sys.exit()
@@ -79,6 +54,7 @@ def main(options, args):
     stats.update_visited_domains(p.visited_domains)
     stats.update_visited_subdomains(p.visited_subdomains)
     stats.update_google_queries(p.google_queries)
+    stats.update_email_servers(p.email_servers)
 
 
 
@@ -86,6 +62,7 @@ def main(options, args):
     ## STEP TWO: Analyze TCP streams
     ##
     logging.getLogger(__name__).info('Analyzing TCP streams...')
+    utils.init_temp_dir('tcpflow')
     t = TCPAnalyzer(trace)
 
     logging.getLogger(__name__).info('Analyzing HTTP conversations...')
@@ -102,11 +79,28 @@ def main(options, args):
             ha = HTMLAnalyzer(page)
             stats.update_page_titles( ha.page_titles )
             stats.update_amazon_products( ha.amazon_products )
+
+    utils.remove_temp_dir('tcpflow')
+
+    return stats
         
+
+
+
+def main(options, args):
+    # set up logging
+    logging.basicConfig(
+        #filename = fileName,
+        format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName) -26s %(message)s",
+        level = logging.DEBUG if options.verbose else logging.WARNING
+    )
+
+    trace = args[0]
+    stats = UserStats()
+
+    stats = analyze_trace(trace, stats)
     print stats.json
 
-    # Remove TMP dir
-    utils.delete_TMP()
 
 if __name__ == '__main__':
     (options, args) = parser.parse_args()

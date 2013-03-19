@@ -11,6 +11,7 @@ class UserStats(object):
         self.page_titles = set()
         self.google_queries = set()
         self.amazon_products = set()
+        self.email_locations = set()
 
     def update_os(self, os):
         self.os = os
@@ -35,6 +36,11 @@ class UserStats(object):
 
     def update_amazon_products(self, products):
         self.amazon_products = self.amazon_products | products
+
+    def update_email_servers(self, locations):
+        for loc in locations.values():
+            if loc:
+                self.email_locations = self.email_locations | { '%s, %s (%s)' % (loc['city'], loc['region'], loc['country']) }
     
 
     def __str__(self):
@@ -47,6 +53,8 @@ GENERAL
 GOOGLE SEARCHES\n %(google_queries)s
 
 BROWSED AMAZON PRODUCTS\n %(amazon_products)s
+
+EMAIL LOCATIONS\n %(email_locations)s
 
 VISITED DOMAINS\n %(visited_domains)s
 
@@ -62,7 +70,8 @@ VISITED PAGES\n %(page_titles)s""" % self.__dict__
             'visited_subdomains': list(self.visited_subdomains),
             'page_titles': list(self.page_titles),
             'google_queries': list(self.google_queries),
-            'amazon_products': list(self.amazon_products)
+            'amazon_products': list(self.amazon_products),
+            'email_locations': list(self.email_locations)
         }
         return json.dumps(info_dict)
     json = property(to_json)

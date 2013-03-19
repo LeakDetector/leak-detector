@@ -6,13 +6,8 @@ from TCPStream import *
 
 class TCPAnalyzer(object):
     def __init__(self, trace_file):
-        # Use tcpflow to reconstruct TCP conversations; save them to TMP dir
-
-        try:
-            self.__outdir = os.path.join(utils.TMP, 'tcpflow')
-            os.makedirs(self.__outdir)
-        except Exception as e:
-            logging.getLogger(__name__).error(e)
+        # Use tcpflow to reconstruct TCP conversations; save them to a temp dir
+        self.__outdir = utils.get_temp_dir('tcpflow')
 
         try:
             # TODO: don't hardcode path?

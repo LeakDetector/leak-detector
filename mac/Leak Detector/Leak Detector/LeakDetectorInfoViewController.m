@@ -21,6 +21,7 @@
 -(void)setLeakInfoDict:(NSDictionary *)leakInfoDict {
     _leakInfoDict = leakInfoDict;
     [self.leakInfoOutlineView reloadItem:nil];
+    [self.leakInfoOutlineView expandItem:nil expandChildren:YES];
 }
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -39,7 +40,7 @@
 
 -(NSArray*) infoSections
 {
-    return [NSArray arrayWithObjects:@"os", @"languages", @"browsers", @"google_queries", @"amazon_products", @"page_titles", @"visited_domains", @"visited_subdomains", nil];
+    return [NSArray arrayWithObjects:@"os", @"languages", @"browsers", @"google_queries", @"amazon_products", @"page_titles", @"email_locations", @"visited_domains", @"visited_subdomains", nil];
 }
 
 - (NSInteger)outlineView:(NSOutlineView *)outlineView numberOfChildrenOfItem:(id)item {
