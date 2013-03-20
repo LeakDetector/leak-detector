@@ -6,7 +6,7 @@ from IPLocator import IPLocator
 class PacketStreamAnalyzer(object):
 
     def __init__(self):
-        self.os = None
+        self.os = set()
         self.languages = set()
         self.browsers = set()
         self.visited_domains = set()
@@ -40,7 +40,8 @@ class PacketStreamAnalyzer(object):
 
     def analyze_http_header(self, http_header, packet):
         h = HTTPHeaderAnalyzer(http_header, packet)
-        if h.os: self.os = h.os
+        #if h.os: self.os = h.os  TODO: clean up
+        self.os = self.os | h.os
         self.languages = self.languages | h.languages
         self.browsers = self.browsers | h.browsers
         self.tcp_html_streams = self.tcp_html_streams | h.tcp_html_streams

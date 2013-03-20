@@ -30,7 +30,7 @@ class HTTPHeaderAnalyzer:
     }
 
     def __init__(self, header, packet):
-        self.os = None
+        self.os = set()
         self.languages = set()
         self.browsers = set()
         self.tcp_html_streams = set()
@@ -46,9 +46,9 @@ class HTTPHeaderAnalyzer:
             if '(' in http_header['User-Agent']:
                 for token in http_header['User-Agent'].split('(')[1].split(')')[0].split(';'):
                     if 'OS X' in token:
-                        self.os = token.replace('_', '.')
+                        self.os = self.os | { token.replace('_', '.') }
                     elif 'Windows' in token:
-                        self.os = WINDOWS[token]
+                        self.os = self.os | { WINDOWS[token] }
 
             if 'Safari' in http_header['User-Agent']:
                 self.browsers = self.browsers | {'Safari'}

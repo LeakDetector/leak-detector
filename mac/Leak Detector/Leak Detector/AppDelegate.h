@@ -17,5 +17,7 @@
 - (IBAction)analyzeTracePressed:(id)sender;
 @property (weak) IBOutlet NSTextField *statusLabel;
 @property (weak) IBOutlet NSProgressIndicator *progressIndicator;
+- (IBAction)startSniffingPressed:(id)sender;
+- (IBAction)stopSniffingPressed:(id)sender;
 
 @end

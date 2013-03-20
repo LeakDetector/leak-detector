@@ -30,6 +30,10 @@ class HTMLAnalyzer(object):
         self.amazon_products= set()
         
         logging.getLogger(__name__).info('    Analyzing HTML...')
+        #with open('htmlout', 'a') as f:
+        #    f.write(html)
+        #    f.write('\n\n')
+        #f.closed
         self.__extract_title(html)
         self.__extract_amazon_info(html)  #TODO: only do this if we know the page is from Amazon
 

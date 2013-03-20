@@ -11,7 +11,7 @@
 @class LeakDetectorBackgroundAnalyzer;
 @protocol AnalyzerActivityListener <NSObject>
 
--(void) analyzerDidStart:(LeakDetectorBackgroundAnalyzer*)analyzer;
+-(void) analyzerDidStart:(LeakDetectorBackgroundAnalyzer*)analyzer withMessage:(NSString*)message;
 -(void) analyzerDidFinish:(LeakDetectorBackgroundAnalyzer*)analyzer;
 
 @end

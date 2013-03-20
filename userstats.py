@@ -3,7 +3,7 @@ import json
 class UserStats(object):
 
     def __init__(self):
-        self.os = ''
+        self.os = set()
         self.languages = set()
         self.browsers = set()
         self.visited_domains = set()
@@ -14,7 +14,7 @@ class UserStats(object):
         self.email_locations = set()
 
     def update_os(self, os):
-        self.os = os
+        self.os = self.os | os
 
     def update_languages(self, languages):
         self.languages = self.languages | languages
@@ -63,7 +63,7 @@ VISITED PAGES\n %(page_titles)s""" % self.__dict__
 
     def to_json(self):
         info_dict = {
-            'os': self.os,
+            'os': list(self.os),
             'languages': list(self.languages),
             'browsers': list(self.browsers),
             'visited_domains': list(self.visited_domains),

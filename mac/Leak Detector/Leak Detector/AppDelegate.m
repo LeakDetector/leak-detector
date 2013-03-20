@@ -68,13 +68,21 @@
     }];
 }
 
--(void)analyzerDidStart:(LeakDetectorBackgroundAnalyzer *)analyzer {
-    self.statusLabel.stringValue = @"Analyzing packet trace...";
+-(void)analyzerDidStart:(LeakDetectorBackgroundAnalyzer *)analyzer withMessage:(NSString *)message {
+    self.statusLabel.stringValue = message;
     [self.progressIndicator startAnimation:self];
 }
 
 -(void)analyzerDidFinish:(LeakDetectorBackgroundAnalyzer *)analyzer {
     [self.progressIndicator stopAnimation:self];
     self.statusLabel.stringValue = @"Finished.";
+}
+
+- (IBAction)startSniffingPressed:(id)sender {
+    [self.analyzer startAnalyzeRealTime];
+}
+
+- (IBAction)stopSniffingPressed:(id)sender {
+    [self.analyzer stopAnalyzeRealTime];
 }
 @end
