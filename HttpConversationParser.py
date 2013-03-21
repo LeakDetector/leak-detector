@@ -1,6 +1,8 @@
+import os
 import StringIO
 import gzip
 import logging
+import hashlib
 from pcap import HTTPHeader
 
 def is_http_header(piece):
@@ -45,8 +47,9 @@ class HttpConversationParser:
     # "pieces" (headers and bodies) are separated by \r\n, so split on that first.
     # data may be in one chunk, or in separate chunks (one for each direction)
     def __init__(self, data):
+        self.__processed_messages = False  # so we can do this lazily; wait until some asks for something
         self.__html_pages = []
-
+        self.__images = []
         self.messages = []
 
         for chunk in data:
@@ -72,31 +75,63 @@ class HttpConversationParser:
                         current_message['body'] = piece
             if len(current_message) > 0:
                 self.messages.append(current_message)
+    
+    
+    # attempts to extract an HTML document from the HTTP message
+    def __process_html_page(self, message):
+        data = message['body']
+        if 'Transfer-Encoding' in message['header'] and message['header']['Transfer-Encoding'] == 'chunked':
+            data = combine_chunks(data)
+        if 'Content-Encoding' not in message['header']:
+            # Assume it's straight HTML; there's nothing to do
+            pass
+        elif 'gzip' in message['header']['Content-Encoding']:  #TODO: handle other encodings
+            data = unzip_html(data)
+        else:
+            data = None
+        if data:
+            self.__html_pages.append(data)
+
+    def __process_image(self, message):
+        print message['header']['Content-Type']
+        if 'body' not in message:
+            print 'NO BODY!!'
+        self.__images.append( (message['header']['Content-Type'], message['body']) )
 
     # scans messages looking for HTML pages
     # adds the pages it finds to self.__html_pages
-    def __process_html_pages(self):
+    # adds images it finds to self.__images
+    def __process_messages(self):
+        self.__processed_messages = True
         for message in self.messages:
             if message['header'].status == '200 OK':
                 try:
                     if 'text/html' in message['header']['Content-Type']:
-                        data = message['body']
-                        if 'Transfer-Encoding' in message['header'] and message['header']['Transfer-Encoding'] == 'chunked':
-                            data = combine_chunks(data)
-                        if 'Content-Encoding' not in message['header']:
-                            # Assume it's straight HTML; there's nothing to do
-                            pass
-                        elif 'gzip' in message['header']['Content-Encoding']:  #TODO: handle other encodings
-                            data = unzip_html(data)
-                        else:
-                            data = None
-                        if data:
-                            self.__html_pages.append(data)
+                        self.__process_html_page(message)
+                    elif 'image' in message['header']['Content-Type']:
+                        self.__process_image(message)
                 except KeyError:
                     pass
 
+
     def _get_html_pages(self):
-        if len(self.__html_pages) == 0:
-            self.__process_html_pages()
+        if not self.__processed_messages:
+            self.__process_messages()
         return self.__html_pages
     html_pages = property(_get_html_pages)
+
+    def save_images_to_dir(self, dir):
+        if not self.__processed_messages:
+            self.__process_messages()
+
+        for image in self.__images:
+            try:
+                name = hashlib.sha1(image[1]).hexdigest()  # name image after its hash
+                suffix = image[0].split('/')[1]
+                filename = os.path.join(dir, '%s.%s' % (name, suffix))
+
+                with open(filename, 'w') as f:
+                    f.write(image[1])
+                f.closed
+            except Exception, e:
+                logging.getLogger(__name__).warning('Error saving image: %s', e)

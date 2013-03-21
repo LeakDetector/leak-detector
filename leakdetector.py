@@ -31,6 +31,7 @@ def main(options, args):
         level = logging.DEBUG if options.verbose else logging.WARNING
     )
 
+    utils.init_temp_dir('images')
 
     # Start tcpdump
     utils.init_temp_dir('traces')

@@ -75,10 +75,15 @@ def analyze_trace(trace, stats):
     for html_stream in html_streams:
         logging.getLogger(__name__).info('    Analyzing stream: %s', html_stream)
         parser = HttpConversationParser(html_stream.http_data)
+
+        # process HTML pages
         for page in parser.html_pages:
             ha = HTMLAnalyzer(page)
             stats.update_page_titles( ha.page_titles )
             stats.update_amazon_products( ha.amazon_products )
+
+        # save images to temp dir
+        parser.save_images_to_dir(utils.get_temp_dir('images'))
 
     utils.remove_temp_dir('tcpflow')
 
@@ -94,6 +99,9 @@ def main(options, args):
         format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName) -26s %(message)s",
         level = logging.DEBUG if options.verbose else logging.WARNING
     )
+
+    # delete existing images if we're running analyzer as standalone
+    utils.init_temp_dir('images')
 
     trace = args[0]
     stats = UserStats()
