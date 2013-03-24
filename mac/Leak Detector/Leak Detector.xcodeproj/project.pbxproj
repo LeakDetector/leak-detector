@@ -20,6 +20,11 @@
 		4699D7C216EE4A0A005327CA /* LeakDetectorInfoViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 4699D7C016EE4A0A005327CA /* LeakDetectorInfoViewController.m */; };
 		4699D7C316EE4A0A005327CA /* LeakDetectorInfoViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4699D7C116EE4A0A005327CA /* LeakDetectorInfoViewController.xib */; };
 		4699D7C916EE9CC7005327CA /* LeakDetectorBackgroundAnalyzer.m in Sources */ = {isa = PBXBuildFile; fileRef = 4699D7C816EE9CC7005327CA /* LeakDetectorBackgroundAnalyzer.m */; };
+		46B46B7216FE527C00D25F94 /* LeakDetectorPrettyViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 46B46B7016FE527C00D25F94 /* LeakDetectorPrettyViewController.m */; };
+		46B46B7316FE527C00D25F94 /* LeakDetectorPrettyViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 46B46B7116FE527C00D25F94 /* LeakDetectorPrettyViewController.xib */; };
+		46B7C4B916FE928D0063A015 /* Quartz.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46B7C4B716FE928D0063A015 /* Quartz.framework */; };
+		46B7C4BA16FE928D0063A015 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46B7C4B816FE928D0063A015 /* QuartzCore.framework */; };
+		46B7C4BD16FE94790063A015 /* ImagePathWrapper.m in Sources */ = {isa = PBXBuildFile; fileRef = 46B7C4BC16FE94790063A015 /* ImagePathWrapper.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +62,13 @@
 		4699D7C116EE4A0A005327CA /* LeakDetectorInfoViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = LeakDetectorInfoViewController.xib; sourceTree = "<group>"; };
 		4699D7C716EE9CC7005327CA /* LeakDetectorBackgroundAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LeakDetectorBackgroundAnalyzer.h; sourceTree = "<group>"; };
 		4699D7C816EE9CC7005327CA /* LeakDetectorBackgroundAnalyzer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LeakDetectorBackgroundAnalyzer.m; sourceTree = "<group>"; };
+		46B46B6F16FE527C00D25F94 /* LeakDetectorPrettyViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LeakDetectorPrettyViewController.h; sourceTree = "<group>"; };
+		46B46B7016FE527C00D25F94 /* LeakDetectorPrettyViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = LeakDetectorPrettyViewController.m; sourceTree = "<group>"; };
+		46B46B7116FE527C00D25F94 /* LeakDetectorPrettyViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = LeakDetectorPrettyViewController.xib; sourceTree = "<group>"; };
+		46B7C4B716FE928D0063A015 /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
+		46B7C4B816FE928D0063A015 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		46B7C4BB16FE94790063A015 /* ImagePathWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImagePathWrapper.h; sourceTree = "<group>"; };
+		46B7C4BC16FE94790063A015 /* ImagePathWrapper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ImagePathWrapper.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -64,6 +76,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				46B7C4B916FE928D0063A015 /* Quartz.framework in Frameworks */,
+				46B7C4BA16FE928D0063A015 /* QuartzCore.framework in Frameworks */,
 				4699D78A16EE2726005327CA /* Cocoa.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -83,6 +97,8 @@
 		4699D77D16EE2726005327CA = {
 			isa = PBXGroup;
 			children = (
+				46B7C4B716FE928D0063A015 /* Quartz.framework */,
+				46B7C4B816FE928D0063A015 /* QuartzCore.framework */,
 				4699D78F16EE2726005327CA /* Leak Detector */,
 				4699D7AC16EE2726005327CA /* Leak DetectorTests */,
 				4699D78816EE2726005327CA /* Frameworks */,
@@ -125,6 +141,11 @@
 				4699D7BF16EE4A0A005327CA /* LeakDetectorInfoViewController.h */,
 				4699D7C016EE4A0A005327CA /* LeakDetectorInfoViewController.m */,
 				4699D7C116EE4A0A005327CA /* LeakDetectorInfoViewController.xib */,
+				46B46B6F16FE527C00D25F94 /* LeakDetectorPrettyViewController.h */,
+				46B46B7016FE527C00D25F94 /* LeakDetectorPrettyViewController.m */,
+				46B46B7116FE527C00D25F94 /* LeakDetectorPrettyViewController.xib */,
+				46B7C4BB16FE94790063A015 /* ImagePathWrapper.h */,
+				46B7C4BC16FE94790063A015 /* ImagePathWrapper.m */,
 				4699D7C716EE9CC7005327CA /* LeakDetectorBackgroundAnalyzer.h */,
 				4699D7C816EE9CC7005327CA /* LeakDetectorBackgroundAnalyzer.m */,
 				4699D79B16EE2726005327CA /* AppDelegate.h */,
@@ -241,6 +262,7 @@
 				4699D79A16EE2726005327CA /* Credits.rtf in Resources */,
 				4699D7A016EE2726005327CA /* MainMenu.xib in Resources */,
 				4699D7C316EE4A0A005327CA /* LeakDetectorInfoViewController.xib in Resources */,
+				46B46B7316FE527C00D25F94 /* LeakDetectorPrettyViewController.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -279,6 +301,8 @@
 				4699D79D16EE2726005327CA /* AppDelegate.m in Sources */,
 				4699D7C216EE4A0A005327CA /* LeakDetectorInfoViewController.m in Sources */,
 				4699D7C916EE9CC7005327CA /* LeakDetectorBackgroundAnalyzer.m in Sources */,
+				46B46B7216FE527C00D25F94 /* LeakDetectorPrettyViewController.m in Sources */,
+				46B7C4BD16FE94790063A015 /* ImagePathWrapper.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -468,6 +492,7 @@
 				4699D7B916EE2726005327CA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		4699D7BA16EE2726005327CA /* Build configuration list for PBXNativeTarget "Leak DetectorTests" */ = {
 			isa = XCConfigurationList;
@@ -476,6 +501,7 @@
 				4699D7BC16EE2726005327CA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

@@ -50,6 +50,7 @@ class HttpConversationParser:
         self.__processed_messages = False  # so we can do this lazily; wait until some asks for something
         self.__html_pages = []
         self.__images = []
+        self.__image_paths = []
         self.messages = []
 
         for chunk in data:
@@ -93,9 +94,6 @@ class HttpConversationParser:
             self.__html_pages.append(data)
 
     def __process_image(self, message):
-        print message['header']['Content-Type']
-        if 'body' not in message:
-            print 'NO BODY!!'
         self.__images.append( (message['header']['Content-Type'], message['body']) )
 
     # scans messages looking for HTML pages
@@ -120,6 +118,12 @@ class HttpConversationParser:
         return self.__html_pages
     html_pages = property(_get_html_pages)
 
+    def _get_image_paths(self):
+        if not self.__processed_messages:
+            self.__process_messages()
+        return self.__image_paths
+    image_paths = property(_get_image_paths)
+
     def save_images_to_dir(self, dir):
         if not self.__processed_messages:
             self.__process_messages()
@@ -133,5 +137,7 @@ class HttpConversationParser:
                 with open(filename, 'w') as f:
                     f.write(image[1])
                 f.closed
+
+                self.__image_paths.append(filename)
             except Exception, e:
                 logging.getLogger(__name__).warning('Error saving image: %s', e)

@@ -84,6 +84,7 @@ def analyze_trace(trace, stats):
 
         # save images to temp dir
         parser.save_images_to_dir(utils.get_temp_dir('images'))
+        stats.update_image_paths( set(parser.image_paths) )
 
     utils.remove_temp_dir('tcpflow')
 

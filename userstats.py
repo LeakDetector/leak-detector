@@ -12,6 +12,7 @@ class UserStats(object):
         self.google_queries = set()
         self.amazon_products = set()
         self.email_locations = set()
+        self.image_paths = set()
 
     def update_os(self, os):
         self.os = self.os | os
@@ -41,6 +42,9 @@ class UserStats(object):
         for loc in locations.values():
             if loc:
                 self.email_locations = self.email_locations | { '%s, %s (%s)' % (loc['city'], loc['region'], loc['country']) }
+
+    def update_image_paths(self, paths):
+        self.image_paths = self.image_paths | paths
     
 
     def __str__(self):
@@ -55,6 +59,8 @@ GOOGLE SEARCHES\n %(google_queries)s
 BROWSED AMAZON PRODUCTS\n %(amazon_products)s
 
 EMAIL LOCATIONS\n %(email_locations)s
+
+IMAGE PATHS\n %(image_paths)s
 
 VISITED DOMAINS\n %(visited_domains)s
 
@@ -71,7 +77,8 @@ VISITED PAGES\n %(page_titles)s""" % self.__dict__
             'page_titles': list(self.page_titles),
             'google_queries': list(self.google_queries),
             'amazon_products': list(self.amazon_products),
-            'email_locations': list(self.email_locations)
+            'email_locations': list(self.email_locations),
+            'image_paths': list(self.image_paths)
         }
         return json.dumps(info_dict)
     json = property(to_json)

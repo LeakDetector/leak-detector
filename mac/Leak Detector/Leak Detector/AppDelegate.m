@@ -9,25 +9,41 @@
 #import "AppDelegate.h"
 #import "LeakDetectorInfoViewController.h"
 #import "LeakDetectorBackgroundAnalyzer.h"
+#import "LeakDetectorPrettyViewController.h"
 
 @interface AppDelegate()
 @property (nonatomic, strong) LeakDetectorInfoViewController *leakDetectorInfoViewController;
+@property (nonatomic, strong) LeakDetectorPrettyViewController *leakDetectorPrettyViewController;
 @property (nonatomic, strong) LeakDetectorBackgroundAnalyzer *analyzer;
 @end
 
 @implementation AppDelegate
 
 @synthesize leakDetectorInfoViewController = _leakDetectorInfoViewController;
+@synthesize leakDetectorPrettyViewController = _leakDetectorPrettyViewController;
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
     // Insert code here to initialize your application
     
     // TODO: move this to separate WindowController?
-    self.leakDetectorInfoViewController = [[LeakDetectorInfoViewController alloc] initWithNibName:@"LeakDetectorInfoViewController" bundle:nil];
-    [self.leakDetectorInfoViewController.view setFrameSize:self.leakDetectorInfoScrollView.contentView.frame.size];
-    [self.leakDetectorInfoScrollView setDocumentView:self.leakDetectorInfoViewController.view];
-    [self.leakDetectorInfoViewController.view setAutoresizingMask: NSViewWidthSizable|NSViewHeightSizable];
+//    self.leakDetectorInfoViewController = [[LeakDetectorInfoViewController alloc] initWithNibName:@"LeakDetectorInfoViewController" bundle:nil];
+//    [self.leakDetectorInfoViewController.view setFrameSize:self.leakDetectorInfoScrollView.contentView.frame.size];
+//    [self.leakDetectorInfoScrollView setDocumentView:self.leakDetectorInfoViewController.view];
+//    [self.leakDetectorInfoViewController.view setAutoresizingMask: NSViewWidthSizable|NSViewHeightSizable];
+    
+    
+    
+    
+    
+    self.leakDetectorPrettyViewController = [[LeakDetectorPrettyViewController alloc] initWithNibName:@"LeakDetectorPrettyViewController" bundle:nil];
+    [self.leakDetectorPrettyViewController.view setFrameSize:self.leakDetectorInfoScrollView.contentView.frame.size];
+    [self.leakDetectorInfoScrollView setDocumentView:self.leakDetectorPrettyViewController.view];
+    [self.leakDetectorPrettyViewController.view setAutoresizingMask: NSViewWidthSizable|NSViewHeightSizable];
+    
+    
+    
+    
     
     // Prepare the analyzer
     self.analyzer = [[LeakDetectorBackgroundAnalyzer alloc] init];
@@ -39,6 +55,9 @@
 -(void) updateLeakInfo:(NSDictionary *)infoDict {
     if (self.leakDetectorInfoViewController) {
         self.leakDetectorInfoViewController.leakInfoDict = infoDict;
+    }
+    if (self.leakDetectorPrettyViewController) {
+        self.leakDetectorPrettyViewController.leakInfoDict = infoDict;
     }
 }
 
