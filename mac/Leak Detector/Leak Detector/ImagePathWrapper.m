@@ -30,9 +30,8 @@
 - (BOOL)isEqual:(id)other {
     if (other == self)
         return YES;
-    if (![super isEqual:other])
-        return NO;
     
+    NSLog(@"Comparing: %c\n", [self.path isEqualToString:((ImagePathWrapper*)other).path]);
     return [self.path isEqualToString:((ImagePathWrapper*)other).path]; // class-specific
 }
 

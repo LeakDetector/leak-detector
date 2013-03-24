@@ -4,6 +4,7 @@ import gzip
 import logging
 import hashlib
 from pcap import HTTPHeader
+from PIL import Image
 
 def is_http_header(piece):
     # TODO: This is really dumb
@@ -138,6 +139,10 @@ class HttpConversationParser:
                     f.write(image[1])
                 f.closed
 
-                self.__image_paths.append(filename)
+                # Get dimensions and decide whether or not to include this image
+                width, height = Image.open(filename).size
+                if width > 200 and height > 100:
+                    self.__image_paths.append(filename)
+
             except Exception, e:
                 logging.getLogger(__name__).warning('Error saving image: %s', e)

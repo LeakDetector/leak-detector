@@ -34,11 +34,12 @@ class HTTPHeaderAnalyzer:
         self.languages = set()
         self.browsers = set()
         self.tcp_html_streams = set()
+        self.tcp_image_streams = set()
         self.google_queries = None
 
         self.__process_user_agent(header)
         self.__process_language(header)
-        self.__find_html_streams(header, packet)
+        self.__find_interesting_streams(header, packet)
         self.__extract_google_query(header)
 
     def __process_user_agent(self, http_header):
@@ -65,13 +66,17 @@ class HTTPHeaderAnalyzer:
         except KeyError:
             pass
 
-    def __find_html_streams(self, http_header, packet):
+    def __find_interesting_streams(self, http_header, packet):
         # Make a note if this header goes with an HTML page to speed
         # up looking for HTML pages later
+        # Ditto for streams containing images
         try:
             if 'text/html' in http_header['Content-Type']:
                 stream = '%s,%s,%s,%s' % (packet.source_ip, packet.source_port, packet.dest_ip, packet.dest_port)
                 self.tcp_html_streams = self.tcp_html_streams | { stream }
+            if 'image' in http_header['Content-Type']:
+                stream = '%s,%s,%s,%s' % (packet.source_ip, packet.source_port, packet.dest_ip, packet.dest_port)
+                self.tcp_image_streams = self.tcp_image_streams | { stream }
         except KeyError:
             pass
 

@@ -36,7 +36,7 @@
     [task setLaunchPath: @"/usr/bin/python"];
     
     NSArray *arguments;
-    arguments = [NSArray arrayWithObjects:@"-u", [BASE_PATH stringByAppendingPathComponent:@"leakdetector.py"], @"-v", @"-G", @"5", nil];
+    arguments = [NSArray arrayWithObjects:@"-u", [BASE_PATH stringByAppendingPathComponent:@"leakdetector.py"], @"-G", @"5", nil];
     [task setArguments: arguments];
     
     NSPipe *pipe;
@@ -49,9 +49,7 @@
     [task launch];
     
     NSData *data;
-    NSLog(@"Waiting for data......");
     data = [file availableData];
-    NSLog(@"Got some data");
     while (data && [task isRunning]) {
         
         //NSString* dataStr = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];

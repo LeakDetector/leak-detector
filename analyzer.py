@@ -67,14 +67,22 @@ def analyze_trace(trace, stats):
 
     logging.getLogger(__name__).info('Analyzing HTTP conversations...')
     # Don't waste time reconstructing HTTP conversations that don't contain HTML
+    # TODO: clean this up?
     html_streams = []
     for s in p.tcp_html_streams:
         sinfo = s.split(',')
         html_streams += [st for st in t.http_streams if sinfo[0] in st.ip_addresses and sinfo[2] in st.ip_addresses and int(sinfo[1]) in st.ports and int(sinfo[3]) in st.ports]
+    
+    image_streams = []
+    for s in p.tcp_image_streams:
+        sinfo = s.split(',')
+        image_streams += [st for st in t.http_streams if sinfo[0] in st.ip_addresses and sinfo[2] in st.ip_addresses and int(sinfo[1]) in st.ports and int(sinfo[3]) in st.ports]
 
-    for html_stream in html_streams:
-        logging.getLogger(__name__).info('    Analyzing stream: %s', html_stream)
-        parser = HttpConversationParser(html_stream.http_data)
+    interesting_streams = set(html_streams) | set(image_streams)  # union
+
+    for interesting_stream in interesting_streams:
+        logging.getLogger(__name__).info('    Analyzing stream: %s', interesting_stream)
+        parser = HttpConversationParser(interesting_stream.http_data)
 
         # process HTML pages
         for page in parser.html_pages:

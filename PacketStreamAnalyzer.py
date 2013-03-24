@@ -12,6 +12,7 @@ class PacketStreamAnalyzer(object):
         self.visited_domains = set()
         self.visited_subdomains = set()
         self.tcp_html_streams = set()
+        self.tcp_image_streams = set()
         self.google_queries = set()
         self.email_servers = {}
         
@@ -45,6 +46,7 @@ class PacketStreamAnalyzer(object):
         self.languages = self.languages | h.languages
         self.browsers = self.browsers | h.browsers
         self.tcp_html_streams = self.tcp_html_streams | h.tcp_html_streams
+        self.tcp_image_streams = self.tcp_image_streams | h.tcp_image_streams
                 
         # with Google instant, queries are built one char at a time; don't keep the intermediaries
         if h.google_query:
