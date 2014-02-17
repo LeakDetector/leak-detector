@@ -112,13 +112,6 @@ def analyze_trace(trace, stats):
 
 
 def main():
-    # set up logging
-    logging.basicConfig(
-        #filename = fileName,
-        format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName) -26s %(message)s",
-        level = logging.DEBUG if args.verbose else logging.WARNING
-    )
-
     # delete existing images if we're running analyzer as standalone
     utils.init_temp_dir('images')
 
@@ -143,5 +136,12 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--outfile', default=None, help='Save output JSON to a file instead of printing to terminal.')
     parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Print extra information for debugging.')
     args = parser.parse_args()
+    
+    # set up logging
+    logging.basicConfig(
+        #filename = fileName,
+        format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName) -26s %(message)s",
+        level = logging.DEBUG if args.verbose else logging.WARNING
+    )
 
     main()

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 import time
 import os
@@ -5,23 +7,15 @@ import logging
 import re
 import subprocess
 import signal
-from optparse import OptionParser
+import argparse
 from userstats import *
 import utils
 import analyzer
 
-
-
-
+TCPDUMP = '/usr/bin/env tcpdump'
 
 def main():
     global p
-    # set up logging
-    logging.basicConfig(
-        #filename = fileName,
-        format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName) -26s %(message)s",
-        level = logging.DEBUG if args.verbose else logging.WARNING
-    )
 
     utils.init_temp_dir('images')
 
@@ -31,9 +25,7 @@ def main():
     logging.getLogger(__name__).debug('Dumping traces to temp dir: %s', tempdir)
     tracefile = os.path.join(tempdir, '%F_%H-%M-%S_trace.pcap')
     try:
-        # TODO: don't hardcode path?
-        p = subprocess.Popen(['/usr/sbin/tcpdump', '-i', args.interface, '-G', args.rotate_seconds, '-w', tracefile], shell=False) #, stdout=subprocess.PIPE)
-        #out, err = p.communicate()
+        p = subprocess.Popen('%s -i %s -G %i -w %s' % (TCPDUMP, args.interface, args.rotate_seconds, tracefile), shell=True)
     except Exception as e:
         logging.getLogger(__name__).error('Error starting tcpdump: %s', e)
         sys.exit()
@@ -76,12 +68,20 @@ if __name__ == '__main__':
     # set up command line args
     parser = argparse.ArgumentParser(description='Analyze current network traffic for leaked information')
     parser.add_argument('-i', '--interface', default='en0', help='Name of interface to sniff (use "ifconfig" to see options).')
-    parser.add_argument('-G', '--rotate_seconds', default='30', help='Number of seconds to sniff before creating new trace file and analyzing previous')
+    parser.add_argument('-G', '--rotate_seconds', default=30, help='Number of seconds to sniff before creating new trace file and analyzing previous')
     parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Print extra information for debugging.')
     args = parser.parse_args()
 
+    args.rotate_seconds = int(args.rotate_seconds)
 
     signal.signal(signal.SIGTERM, kill_handler)
     signal.signal(signal.SIGINT , kill_handler)
+    
+    # set up logging
+    logging.basicConfig(
+        #filename = fileName,
+        format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName) -26s %(message)s",
+        level = logging.DEBUG if args.verbose else logging.WARNING
+    )
 
     main()
