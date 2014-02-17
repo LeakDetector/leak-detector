@@ -4,21 +4,14 @@ import sys
 import os
 import shutil
 import logging
-import re
+import argparse
 from pcap import *
-from optparse import OptionParser
 from userstats import *
 from TCPAnalyzer import *
-#from HttpConversationParser import *
 from PacketStreamAnalyzer import *
 from HTMLAnalyzer import *
 import utils
 from PIL import Image
-
-
-# Setup command line options
-parser = OptionParser()
-parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False, help="Prints extra information useful for debugging.")
 
 
 def filter(packet):
@@ -118,24 +111,37 @@ def analyze_trace(trace, stats):
 
 
 
-def main(options, args):
+def main():
     # set up logging
     logging.basicConfig(
         #filename = fileName,
         format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName) -26s %(message)s",
-        level = logging.DEBUG if options.verbose else logging.WARNING
+        level = logging.DEBUG if args.verbose else logging.WARNING
     )
 
     # delete existing images if we're running analyzer as standalone
     utils.init_temp_dir('images')
 
-    trace = args[0]
     stats = UserStats()
+    stats = analyze_trace(args.trace, stats)
 
-    stats = analyze_trace(trace, stats)
-    print stats.json
+    if args.outfile:
+        try:
+            with open(args.outfile, 'w') as f:
+                f.write(stats.json)
+            f.closed
+        except Exception as e:
+            logging.getLogger(__name__).error(e)
+    else:
+        print stats.json
 
 
 if __name__ == '__main__':
-    (options, args) = parser.parse_args()
-    sys.exit(main(options, args))
+    # set up command line args
+    parser = argparse.ArgumentParser(description='Analyze a packet trace for leaked information')
+    parser.add_argument('trace', help='Packet trace to analyze (PCAP file).')
+    parser.add_argument('-o', '--outfile', default=None, help='Save output JSON to a file instead of printing to terminal.')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Print extra information for debugging.')
+    args = parser.parse_args()
+
+    main()
