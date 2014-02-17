@@ -6,6 +6,8 @@ import hashlib
 from pcap import HTTPHeader
 from PIL import Image
 
+# NOTE: This class is deprecated, since tcpflow now performs this functionality
+
 def is_http_header(piece):
     # TODO: This is really dumb
     return 'HTTP' in piece
@@ -37,6 +39,22 @@ def unzip_html(zipped):
         return html
     except Exception as e:
         logging.getLogger(__name__).warning('Error unzipping html: %s', e)
+                
+                
+def do_display_image(filename):
+    try:
+        im = Image.open(filename)
+        width, height = im.size
+        if width < 150 or height < 150:
+            return False
+
+        colors = im.getcolors(10)  # returns None if there are more than 10 colors
+        if colors:
+            return False
+
+        return True
+    except Exception, e:
+        logging.getLogger(__name__).warning('Error processing image: %s', e)
 
 # Parses an HTTP conversation. Currently only useful for extracting
 # transmitted HTML documents
@@ -139,9 +157,8 @@ class HttpConversationParser:
                     f.write(image[1])
                 f.closed
 
-                # Get dimensions and decide whether or not to include this image
-                width, height = Image.open(filename).size
-                if width > 200 and height > 100:
+                # Decide whether or not to include this image
+                if do_display_image(filename):
                     self.__image_paths.append(filename)
 
             except Exception, e:
