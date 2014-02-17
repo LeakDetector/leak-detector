@@ -444,6 +444,8 @@ class NetworkCapture(PCap):
                             yield network_packet
                     except PCapCorruptPacket:
                         continue
+                    except:
+                        continue   # TODO: smarter error checking here?
                     
         except (KeyboardInterrupt, SystemExit), e:
              sys.exit()
