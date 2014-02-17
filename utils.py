@@ -51,5 +51,5 @@ def check_both(args, shouldPrint=True, check=True):
     if check and rc is not 0:
         #print "Error processes output: %s" % (out,)
         raise Exception("subprocess.CalledProcessError: Command '%s'" \
-                            "returned non-zero exit status %s" % (args, rc))
+                            "returned non-zero exit status %s (%s)" % (args, rc, out[0]))
     return out
