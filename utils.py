@@ -2,6 +2,10 @@ import os
 import shutil
 import tempfile
 import logging
+import sys
+import select
+import time
+from subprocess import Popen, PIPE, STDOUT
 
 def init_temp_dir(tag):
     __master_temp = tempfile.gettempdir()
@@ -34,3 +38,18 @@ def remove_temp_dir(tag):
         shutil.rmtree(tempdir)
     except Exception as e:
         logging.getLogger(__name__).warning('Could not remove temp dir: %s\n%s', tempdir, e)
+
+def check_output(args, shouldPrint=True):
+    return check_both(args, shouldPrint)[0]
+
+def check_both(args, shouldPrint=True, check=True):
+    p = Popen(args,shell=True,stdout=PIPE,stderr=STDOUT)
+    out, err = p.communicate()
+    rc = p.returncode
+    out = (out,"")
+    out = (out, rc)
+    if check and rc is not 0:
+        #print "Error processes output: %s" % (out,)
+        raise Exception("subprocess.CalledProcessError: Command '%s'" \
+                            "returned non-zero exit status %s" % (args, rc))
+    return out
