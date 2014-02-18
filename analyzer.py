@@ -3,8 +3,6 @@
 import sys
 import os
 import shutil
-import logging
-import argparse
 from pcap import *
 from userstats import *
 from TCPAnalyzer import *
@@ -105,43 +103,3 @@ def analyze_trace(trace, stats):
     utils.remove_temp_dir('tcpflow')
 
     return stats
-
-
-
-
-
-
-def main():
-    # delete existing images if we're running analyzer as standalone
-    utils.init_temp_dir('images')
-
-    stats = UserStats()
-    stats = analyze_trace(args.trace, stats)
-
-    if args.outfile:
-        try:
-            with open(args.outfile, 'w') as f:
-                f.write(stats.json)
-            f.closed
-        except Exception as e:
-            logging.getLogger(__name__).error(e)
-    else:
-        print stats.json
-
-
-if __name__ == '__main__':
-    # set up command line args
-    parser = argparse.ArgumentParser(description='Analyze a packet trace for leaked information')
-    parser.add_argument('trace', help='Packet trace to analyze (PCAP file).')
-    parser.add_argument('-o', '--outfile', default=None, help='Save output JSON to a file instead of printing to terminal.')
-    parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Print extra information for debugging.')
-    args = parser.parse_args()
-    
-    # set up logging
-    logging.basicConfig(
-        #filename = fileName,
-        format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName) -26s %(message)s",
-        level = logging.DEBUG if args.verbose else logging.WARNING
-    )
-
-    main()
