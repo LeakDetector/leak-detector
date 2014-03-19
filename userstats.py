@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 
 class UserStats(object):
 
@@ -13,6 +14,7 @@ class UserStats(object):
         self.amazon_products = set()
         self.email_locations = set()
         self.image_paths = set()
+        self.matched_regexes = defaultdict(list)
 
     def update_os(self, os):
         self.os = self.os | os
@@ -45,6 +47,10 @@ class UserStats(object):
 
     def update_image_paths(self, paths):
         self.image_paths = self.image_paths | paths
+
+    def update_matched_regexes(self, matches):
+        for category in matches:
+            self.matched_regexes[category] += matches[category]
     
 
     def __str__(self):
@@ -78,7 +84,8 @@ VISITED PAGES\n %(page_titles)s""" % self.__dict__
             'google_queries': list(self.google_queries),
             'amazon_products': list(self.amazon_products),
             'email_locations': list(self.email_locations),
-            'image_paths': list(self.image_paths)
+            'image_paths': list(self.image_paths),
+            'matched_regexes': self.matched_regexes
         }
         return json.dumps(info_dict)
     json = property(to_json)

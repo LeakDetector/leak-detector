@@ -81,6 +81,12 @@ def analyze_trace(trace, stats):
     utils.init_temp_dir('tcpflow')
     t = TCPAnalyzer(trace)
 
+    # look for regex matches
+    regexes = {}   #{'Phone Number':[r'\(?[2-9][0-8][0-9]\s*\W?\s*[2-9][0-9]{2}\s*\W?\s*[0-9]{4}']}
+    for s in t.streams:
+        match_dict = s.find_regexes(regexes)
+        stats.update_matched_regexes(match_dict)
+
     logging.getLogger(__name__).info('Analyzing HTTP conversations...')
 
     # process HTML pages

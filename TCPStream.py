@@ -1,6 +1,7 @@
-import subprocess
+#import subprocess
 import os
 import re
+from collections import defaultdict
 
 def tcpflow_endpoint_str_to_endpoint(s):
     pieces = s.split('.')
@@ -24,43 +25,48 @@ def endpoints_to_tcpflow_file_name(endpoint1, endpoint2):
 
 
 
-
-
 class TCPStream(object):
-    def __init__(self, flow_file, data_dir):
-        self.__data_dir = data_dir
+    """An abstraction for a *one-directional* TCP flow (that is, each TCP
+    actually has two TCP stream objects"""
 
-        self.endpoints = tcpflow_file_name_to_endpoints(flow_file)
+    def __init__(self, flow_file):
+        self.flow_file = flow_file
+        self.source, self.dest = tcpflow_file_name_to_endpoints(os.path.basename(flow_file))
 
 
     def __str__(self):
-        return '%s:%d <-> %s:%d' % (self.endpoints[0][0], self.endpoints[0][1], self.endpoints[1][0], self.endpoints[1][1])
+        return '%s:%d -> %s:%d' % (self.source[0], self.source[1], self.dest[0], self.dest[1])
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            return (self.endpoints[1] == other.endpoints[1] and self.endpoints[0] == other.endpoints[0]) or (self.endpoints[1] == other.endpoints[0] and self.endpoints[0] == other.endpoints[1])
+            return self.source == other.source and self.dest == other.dest
         else:
             return False
 
     def _get_ports(self):
-        return (self.endpoints[0][1], self.endpoints[1][1])
+        return (self.source[1], self.dest[1])
     ports = property(_get_ports)
     
     def _get_ip_addresses(self):
-        return (self.endpoints[0][0], self.endpoints[1][0])
+        return (self.source[0], self.dest[0])
     ip_addresses = property(_get_ip_addresses)
 
-    def __get_http_data(self, e1, e2):
-        fname = '%s' % endpoints_to_tcpflow_file_name(e1, e2)
-        fpath = os.path.join(self.__data_dir, fname)
-        if os.path.exists(fpath):
-            with open(fpath, 'r') as f:
-                data = f.read()
-            f.closed
-        else:
-            data = None
-        return data
+    def find_regexes(self, regexes):
+        """Finds matches in the byte stream for various regexes.
 
-    def _get_http_data(self):
-        return (self.__get_http_data(self.endpoints[0], self.endpoints[1]), self.__get_http_data(self.endpoints[1], self.endpoints[0]))
-    http_data = property(_get_http_data)
+        regexes is a dictionary mapping category names to lists of regex
+        patterns of that category. (e.g., "phone numbers" might contain
+        multiple regexes matching different phone number formats)"""
+
+        with open(self.flow_file, 'r') as f:
+            data = f.read()
+        f.closed
+
+        match_dict = defaultdict(list)  # category -> list of matches
+
+        for category in regexes:
+            for regex in regexes[category]:
+                matches = re.findall(regex, data)
+                if len(matches) > 0:
+                    match_dict[category] += matches
+        return match_dict

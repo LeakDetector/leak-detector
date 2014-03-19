@@ -2,7 +2,7 @@ import os
 import subprocess
 import logging
 import utils
-from TCPStream import *
+from TCPStream import TCPStream
 
 TCPFLOW = '/usr/bin/env tcpflow'
 
@@ -16,13 +16,15 @@ class TCPAnalyzer(object):
         except Exception as e:
             logging.getLogger(__name__).error(e)
 
-        #self.streams = []
+        self.streams = []
         self.html_files = []
         self.images = []
 
         for f in os.listdir(self.__outdir):
             abspath = os.path.join(self.__outdir, f)
-            if f.endswith('.html'):
+            if 'HTTPBODY' not in f and 'report' not in f and 'alerts' not in f:
+                self.streams.append(TCPStream(abspath))
+            elif f.endswith('.html'):
                 self.html_files.append(abspath)
             elif f.endswith('.jpg')\
                 or f.endswith('.gif')\
