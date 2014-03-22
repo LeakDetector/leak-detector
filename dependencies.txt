@@ -1,6 +1,0 @@
-tcpflow
-
-PIL (Python Image Library)
-http://stackoverflow.com/questions/9070074/how-to-install-pil-on-mac-os-x-10-7-2-lion
-	- use brew?
-	- need libjpeg first if use pip?
