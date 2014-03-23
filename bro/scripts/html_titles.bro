@@ -1,7 +1,7 @@
 # Modified from:
 # https://github.com/srunnels/broselytize/tree/master/Logging%20Youtube%20V
 
-module Titles;
+module html_titles;
 
 global title_set: set[string];
 
@@ -47,7 +47,7 @@ event http_entity_data(c: connection, is_orig: bool, length: count, data: string
 
             if ( 2 in temp )
             {
-				Log::write( Titles::LOG, [$ts=network_time(),
+				Log::write( html_titles::LOG, [$ts=network_time(),
 										  $title=temp[2]] );
             }
             delete title_set[c$uid];
