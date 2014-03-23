@@ -56,3 +56,5 @@ profile
 DerivedData
 .idea/
 
+# bro
+.state

@@ -1,3 +1,4 @@
+import json
 import pprint
 from collections import defaultdict
 
@@ -18,3 +19,7 @@ class UserData(object):
 
     def __str__(self):
         return pprint.pformat(self.data)
+
+    def __to_json(self):
+        return json.dumps(self.data)
+    json = property(__to_json)

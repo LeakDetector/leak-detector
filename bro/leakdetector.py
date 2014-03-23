@@ -13,14 +13,16 @@ from DNSLogParser import DNSLogParser
 
 
 BRO = '/usr/bin/env bro'
+BRO_SCRIPTS = ['scripts/html_titles.bro']
 
-# which bro logs do we want to parse? dict maps log file name to parser to
-# process it with.
+# which bro logs do we want to parse?
+# maps log name to corresponding parser class
 BRO_LOGS = {
     'http.log': HTTPLogParser,
     'html_titles.log': HTMLTitlesLogParser,
     'dns.log': DNSLogParser
 }
+
 
 def analyze_logs(log_dir):
     userdata = UserData()
@@ -32,19 +34,48 @@ def analyze_logs(log_dir):
             parser.analyze()
             userdata.merge(UserData(parser.data))
 
-
-    print userdata
+    if args.outfile:
+        try:
+            with open(args.outfile, 'w') as f:
+                f.write(userdata.json)
+            f.closed
+        except Exception as e:
+            logging.getLogger(__name__).error(e)
+    else:
+        print userdata
 
     
 
 def main():
 
-    # TEST CODE
-    analyze_logs('./scripts')
-
-
     if args.tracefile:
-        pass
+        logging.getLogger(__name__).debug('Analyzing trace: %s', args.tracefile)
+        
+        # get absolute paths to our custom bro scripts
+        bro_scripts = ''
+        for script in BRO_SCRIPTS:
+            bro_scripts += ' %s' % os.path.abspath(script)
+        logging.getLogger(__name__).debug('Custom bro scripts: %s', bro_scripts)
+
+        # make a temp dir for bro logs
+        utils.init_temp_dir('bro_logs')
+        logdir = utils.get_temp_dir('bro_logs')
+
+        # change to logdir before running bro
+        origdir = os.getcwd()
+        os.chdir(logdir)
+
+        # run bro
+        logging.getLogger(__name__).debug('Running bro in temp dir: %s', logdir)
+        utils.check_output('%s -r %s %s' % (BRO, args.tracefile, bro_scripts))
+
+        # change back to original dir and process logs
+        os.chdir(origdir)
+        analyze_logs(logdir)
+
+        # remove bro log temp dir
+        utils.remove_temp_dir('bro_logs')
+
     else:
         pass
 
@@ -58,6 +89,9 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--outfile', default=None, help='Save output JSON to a file instead of printing to terminal.')
     parser.add_argument('-r', '--tracefile', default=None, help='Analyze existing trace (PCAP file) instead of live traffic.')
     args = parser.parse_args()
+
+    if args.tracefile:
+        args.tracefile = os.path.abspath(args.tracefile)
 
     # set up logging
     logging.basicConfig(
