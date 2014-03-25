@@ -10,17 +10,19 @@ from userdata import UserData
 from HTTPLogParser import HTTPLogParser
 from HTMLTitlesLogParser import HTMLTitlesLogParser
 from DNSLogParser import DNSLogParser
+from RegexesLogParser import RegexesLogParser
 
 
 BRO = '/usr/bin/env bro'
-BRO_SCRIPTS = ['scripts/html_titles.bro']
+BRO_SCRIPTS = ['scripts/html_titles.bro', 'scripts/regexes.bro']
 
 # which bro logs do we want to parse?
 # maps log name to corresponding parser class
 BRO_LOGS = {
     'http.log': HTTPLogParser,
     'html_titles.log': HTMLTitlesLogParser,
-    'dns.log': DNSLogParser
+    'dns.log': DNSLogParser,
+    'regexes.log': RegexesLogParser
 }
 
 
