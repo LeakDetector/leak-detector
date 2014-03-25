@@ -39,4 +39,4 @@ class HTMLTitlesLogParser(BroLogParser):
     def _process_record(self, r):
         title = unescape(r['title'], self.html_unescape_table)
         if self.__display_title(title):
-            self.data['html_titles'].add(title)
+            self.data['html-titles'].add(title)
