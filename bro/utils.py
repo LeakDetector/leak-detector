@@ -33,7 +33,7 @@ def remove_temp_dir(tag):
     __master_temp = tempfile.gettempdir()
 
     tempdir = os.path.join(__master_temp, 'leakdetector-%s' % tag)
-    logging.getLogger(__name__).info('Removing TMP directory: %s', tempdir)
+    logging.getLogger(__name__).debug('Removing TMP directory: %s', tempdir)
     try:
         shutil.rmtree(tempdir)
     except Exception as e:

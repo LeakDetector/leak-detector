@@ -74,6 +74,7 @@ def main():
         utils.check_output('%s -r %s %s' % (BRO, args.tracefile, bro_scripts))
 
         # change back to original dir and process logs
+        logging.getLogger(__name__).debug('Switching back to dir: %s', origdir)
         os.chdir(origdir)
         analyze_logs(logdir)
 
