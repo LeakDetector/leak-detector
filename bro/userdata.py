@@ -23,7 +23,10 @@ class UserData(object):
         self.output_filter = filter_string.strip().split(',')
 
     def __get_filtered_output(self):
-        return {key: self.data[key] for key in self.output_filter if key in self.data}
+        if self.output_filter:
+            return {key: self.data[key] for key in self.output_filter if key in self.data}
+        else:
+            return self.data
     filtered_output = property(__get_filtered_output)
 
     def __str__(self):
