@@ -6,6 +6,7 @@ class UserData(object):
 
     def __init__(self, data={}):
         self.data = data
+        self.output_filter = []
 
     def merge(self, userdata):
         for k, v in userdata.data.iteritems():
@@ -17,9 +18,17 @@ class UserData(object):
             else:
                 self.data[k] = v
 
+    def set_output_filter(self, filter_string):
+        '''supply a CSV string of data tags to include in output'''
+        self.output_filter = filter_string.strip().split(',')
+
+    def __get_filtered_output(self):
+        return {key: self.data[key] for key in self.output_filter if key in self.data}
+    filtered_output = property(__get_filtered_output)
+
     def __str__(self):
-        return pprint.pformat(self.data)
+        return pprint.pformat(self.filtered_output)
 
     def __to_json(self):
-        return json.dumps(self.data)
+        return json.dumps(self.filtered_output)
     json = property(__to_json)

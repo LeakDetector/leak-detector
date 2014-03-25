@@ -28,6 +28,8 @@ BRO_LOGS = {
 
 def analyze_logs(log_dir):
     userdata = UserData()
+    if args.filter:
+        userdata.set_output_filter(args.filter)
 
     for log, parser_class in BRO_LOGS.iteritems():
         log_path = os.path.join(log_dir, log)
@@ -51,7 +53,7 @@ def analyze_logs(log_dir):
 def main():
 
     if args.tracefile:
-        logging.getLogger(__name__).debug('Analyzing trace: %s', args.tracefile)
+        logging.getLogger(__name__).info('Analyzing trace: %s', args.tracefile)
         
         # get absolute paths to our custom bro scripts
         bro_scripts = ''
@@ -90,6 +92,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Print extra information for debugging.')
     parser.add_argument('-o', '--outfile', default=None, help='Save output JSON to a file instead of printing to terminal.')
     parser.add_argument('-r', '--tracefile', default=None, help='Analyze existing trace (PCAP file) instead of live traffic.')
+    parser.add_argument('-f', '--filter', default=None, help='A CSV string of keys to include in the output. (Useful to limit output to subset of keys you care about.)')
     args = parser.parse_args()
 
     if args.tracefile:
