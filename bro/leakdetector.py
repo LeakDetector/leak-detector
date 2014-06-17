@@ -8,23 +8,23 @@ import argparse
 import utils
 import subprocess
 import signal
+import glob
 from userdata import UserData
-from HTTPLogParser import HTTPLogParser
-from HTMLTitlesLogParser import HTMLTitlesLogParser
-from DNSLogParser import DNSLogParser
-from RegexesLogParser import RegexesLogParser
+import parsers
 
 
 BRO = '/usr/bin/env bro'
-BRO_SCRIPTS = ['scripts/html_titles.bro', 'scripts/regexes.bro']
+BRO_SCRIPTS = glob.glob("scripts/*.bro")
 
 # which bro logs do we want to parse?
 # maps log name to corresponding parser class
 BRO_LOGS = {
-    'http.log': HTTPLogParser,
-    'html_titles.log': HTMLTitlesLogParser,
-    'dns.log': DNSLogParser,
-    'regexes.log': RegexesLogParser
+    'http.log': parsers.HTTPLogParser,
+    'html_titles.log': parsers.HTMLTitlesLogParser,
+    'dns.log': parsers.DNSLogParser,
+    'regexes.log': parsers.RegexesLogParser,
+    'private_browsing.log': parsers.PBLogParser,
+    'ssl.log': parsers.SSLLogParser
 }
 
 
