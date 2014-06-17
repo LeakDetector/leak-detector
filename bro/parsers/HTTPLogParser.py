@@ -39,8 +39,12 @@ class HTTPLogParser(BroLogParser):
         return os, browser
 
     def _process_record(self, r):
+        # user agent and browser
         os, browser = self.__process_user_agent(r['user_agent'])
         if os: self.data['os'].add(os)
         if browser: self.data['browser'].add(browser)
+        
+        # http basic auth usernames and passwords
         if r['username'] != '-': self.data['http-usernames'].add(r['username'])
-        if r['password'] != '-': self.data['http-passwords'].add(r['password'])
+        if r['password']: self.data['http-passwords'].add(r['password'])
+        
