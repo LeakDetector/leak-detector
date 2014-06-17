@@ -58,3 +58,5 @@ DerivedData
 
 # bro
 .state
+
+*.log
