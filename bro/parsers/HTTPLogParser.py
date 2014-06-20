@@ -30,9 +30,9 @@ class HTTPLogParser(BroLogParser):
                     elif 'Windows' in token:
                         os = WINDOWS[token]
 
-            if 'Safari' in user_agent: browser = 'Safari'
+            if 'Chrome' in user_agent or ('Chrome' in user_agent and 'Safari' in user_agent): browser = 'Google Chrome'
             elif 'Firefox' in user_agent: browser = 'Firefox'
-            elif 'Chrome' in user_agent or ('Chrome' and 'Safari' in user_agent): browser = 'Chrome'
+            elif 'Safari': browser = 'Safari'
         except KeyError:
             pass
 
