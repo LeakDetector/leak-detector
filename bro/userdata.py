@@ -12,11 +12,15 @@ class UserData(object):
         for k, v in userdata.data.iteritems():
             if k in self.data:
                 if type(v) is set:
-                    self.data[k] |= v
+                    self.data[k] = list(self.data[k] or v)
                 elif type(v) is list:
                     self.data[k] += v
             else:
-                self.data[k] = v
+                if type(v) is set: 
+                    #import pdb; pdb.set_trace()
+                    self.data[k] = list(v)
+                else:    
+                    self.data[k] = v
 
     def set_output_filter(self, filter_string):
         '''supply a CSV string of data tags to include in output'''

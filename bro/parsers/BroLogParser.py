@@ -1,10 +1,11 @@
 from collections import defaultdict
+import tldextract
 
 class BroLogParser(object):
-    
     def __init__(self, log_path):
         self.log_path = log_path
         self.data = defaultdict(set)
+        self.parse_domain = tldextract.extract
         
         with open(self.log_path, 'r') as f:
             for line in f:
