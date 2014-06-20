@@ -32,7 +32,7 @@ class HTTPLogParser(BroLogParser):
 
             if 'Safari' in user_agent: browser = 'Safari'
             elif 'Firefox' in user_agent: browser = 'Firefox'
-            elif 'Chrome' in user_agent: browser = 'Chrome'
+            elif 'Chrome' in user_agent or ('Chrome' and 'Safari' in user_agent): browser = 'Chrome'
         except KeyError:
             pass
 
@@ -46,5 +46,5 @@ class HTTPLogParser(BroLogParser):
         
         # http basic auth usernames and passwords
         if r['username'] != '-': self.data['http-usernames'].add(r['username'])
-        if r['password']: self.data['http-passwords'].add(r['password'])
+        if r['password'] != '-': self.data['http-passwords'].add(r['password'])
         
