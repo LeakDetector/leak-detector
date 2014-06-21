@@ -2,7 +2,6 @@ from BroLogParser import BroLogParser
 from collections import defaultdict
 
 class PBLogParser(BroLogParser):
-    
     def __init__(self, log_path):
         super(PBLogParser, self).__init__(log_path)
         # List instead of set, so that we can count visits
@@ -12,6 +11,7 @@ class PBLogParser(BroLogParser):
         host,uri = r['host'], r['uri']
         if uri:
             self.data['private-browsing-uris'].append(host+uri)
+            self.data['private-browsing-domains'].append(self.parse_domain(host))
         else:
-            self.data['private-browsing-uris'].append(host)
+            self.data['private-browsing-domains'].append(self.parse_domain(host))
 

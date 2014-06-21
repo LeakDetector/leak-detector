@@ -6,7 +6,7 @@ import sys
 import select
 import time
 from subprocess import Popen, PIPE, STDOUT
-
+from itertools import chain
 def init_temp_dir(tag):
     __master_temp = tempfile.gettempdir()
 
@@ -53,3 +53,6 @@ def check_both(args, shouldPrint=True, check=True):
         raise Exception("subprocess.CalledProcessError: Command '%s'" \
                             "returned non-zero exit status %s (%s)" % (args, rc, out[0]))
     return out
+    
+def merge_dicts(x, y):
+    return dict(chain(x.iteritems(), y.iteritems()))
