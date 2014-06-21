@@ -60,3 +60,7 @@ DerivedData
 .state
 
 *.log
+
+bro/test.json
+
+bro/test2.json
