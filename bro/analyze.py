@@ -1,5 +1,6 @@
 from collections import Counter
 from utils import merge_dicts
+from functools import wraps
 import json
 
 class Service(object):
@@ -109,22 +110,35 @@ class LeakResults(object):
         }
         # Analysis pipeline (not automatically executed yet)
         self.analyses = [self.countservices, self.domainstoservices]
+        
+    def pipeline(func):
+        """Wrapper function for all the operations in the data processing pipeline."""
+        @wraps(func)
+        def wrapped(self, *args, **kwargs):
+            # temporary dictionary
+            self.temp = {} 
+            # call the function to do the processing
+            func(self, *args, **kwargs)
+            # merge temporary and processed dicts 
+            self.processed = merge_dicts(self.processed, self.temp)    
+        return wrapped
     
+    
+    @pipeline
     def countservices(self):
         """Produces a 'hit count' from browsing history."""
-        temp = {}
         for k in self.available_keys('domains'):
-            temp[k] = Counter(domain[-2] for domain in self.leaks[k])
-        self.processed = merge_dicts(self.processed, temp)    
-    
+            self.temp[k] = Counter(domain[-2] for domain in self.leaks[k])
+
+    @pipeline
     def domainstoservices(self): 
         """Turns browsing history into a list of Services""" 
-        temp = {}
+
         for k in self.available_keys('domains'):
             assert type(self.processed[k]) == Counter
-            temp[k] = [self.map.fromdomain(domain, hits=count) for domain, count in self.processed[k].items()]
+            self.temp[k] = [self.map.fromdomain(domain, hits=count) for domain, count in self.processed[k].items()]
             
-        self.processed = merge_dicts(self.processed, temp)    
+        
     
     def available_keys(self, category):
         """Return the overlap between the available keys (data you have) and all relevant
@@ -135,6 +149,7 @@ class LeakResults(object):
         # call each analysis
         # mergedict
         pass
+    pipeline = staticmethod(pipeline)    
 
 
 def genservice(name, hits=None):
