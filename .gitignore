@@ -64,3 +64,5 @@ DerivedData
 bro/test.json
 
 bro/test2.json
+
+*.json
