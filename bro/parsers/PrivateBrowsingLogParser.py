@@ -10,8 +10,7 @@ class PBLogParser(BroLogParser):
     def _process_record(self, r):
         host,uri = r['host'], r['uri']
         if uri:
-            self.data['private-browsing-uris'].append(host+uri)
-            self.data['private-browsing-domains'].append(self.parse_domain(host))
+            self.data['private-browsing'].append(host+uri)
         else:
-            self.data['private-browsing-domains'].append(self.parse_domain(host))
+            self.data['private-browsing'].append(host)
 

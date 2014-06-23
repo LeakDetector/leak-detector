@@ -10,6 +10,6 @@ class SSLLogParser(BroLogParser):
     def _process_record(self, r):
         host = r['server_name']
         if host != "-": 
-            self.data['https-servers'].append(self.parse_domain(host))
+            self.data['https-servers'].append(host)
 
 

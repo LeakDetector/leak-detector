@@ -9,3 +9,14 @@ mapping = {
     'Twitter': Service("Twitter", category="Social network"),
     'YouTube': Service("YouTube", category="Video sharing")
 }
+
+# A list of trace outputs relevant to different areas of interest.
+domainmap = {('fbcdn', 'facebook', 'fbstatic', 'fbexternal'): 'Facebook',
+     ('googleusercontent',
+      'google',
+      'gstatic',
+      'googlesyndication',
+      'ggpht',
+      'googletagservices', 'googleapps', 'googleapis', '1e100', 'googlecommerce'): 'Google',
+     ('twimg', 'twitter'): 'Twitter',
+     ('youtube', 'ytimg'): 'YouTube'}

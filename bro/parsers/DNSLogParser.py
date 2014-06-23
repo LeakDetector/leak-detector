@@ -11,4 +11,4 @@ class DNSLogParser(BroLogParser):
     def _process_record(self, r):
         query = r['query']
         if query != '-':
-            self.data['visited-subdomains'].append(self.parse_domain(query))
+            self.data['visited-subdomains'].append(query)
