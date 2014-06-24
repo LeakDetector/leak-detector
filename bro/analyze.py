@@ -4,7 +4,11 @@ from functools import wraps
 from operator import itemgetter
 import tldextract
 import json
-import publicsuffix
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
 
 class Service(object):
     """Class for grouping extracted domains and other elements under one service-related umbrella.
@@ -17,18 +21,31 @@ class Service(object):
         self.description = description
         self.category = category      
         self.hits = hits
+        self.domains = domains
     
     def __repr__(self):
-        return """Service('%s')""" % self.name    
+        return """Service('%s', description=%s, category='%s', hits=%s)""" % (self.name, self.description, self.category, self.hits)
+        
+    def __str__(self):
+        return "Service --> %s" % self.__dict__
     
     def __hash__(self):
         return hash(self.name+self.description+self.category)
         
     def __eq__(self, other):
-        if not other.category or not self.category:
-            return self.name == other.name
-        else:
-            return self.name == other.name and self.category == other.category
+        """Equal if: same name, string with same name as service, domains are equal."""
+        
+        if type(other) is Service:
+            if not other.category or not self.category:
+                return self.name == other.name
+            else:
+                return self.name == other.name and self.category == other.category
+        elif type(other) is str:
+            return other == self.name
+        elif type(other) is Domain:
+            return Domain.domains[0].registered_domain == self.domains[0].registered_domain
+        elif type(other) is tldextract.ExtractResult:
+            return self.domains[0].registered_domain == other.registered_domain
         
     def __add__(self, other):
         if self == other:
@@ -39,8 +56,8 @@ class Service(object):
 
 class Domain(Service):
     """A Domain is a Service without any identifying info. Kind of a placeholder right now."""
-    def __init__(self, name, hits=None):
-        super(Domain, self).__init__(name, hits)
+    def __init__(self, name, domains=[], hits=None):
+        super(Domain, self).__init__(name, domains=domains, hits=hits)
 
     def __repr__(self):
         return "Domain('%s')" % self.name    
@@ -95,20 +112,21 @@ class ServiceMap(object):
         self.service_names = {v:k for k, v in self.domainmap.items()}    
         
         # And create the TLD validation list    
-        self.psl = [suffix.s for suffix in publicsuffix.public_suffix_list()]
+        with open("includes/processed-psl.dat") as f: self.psl = pickle.load(f)
 
     def fromdomain(self, domain, hits=0):
         """Returns a service given a stripped domain name, or a Domain if the mapping is nonexistent."""
         from serviceList import mapping
         
         try:
-            name = self.SERVICE_MAP[domain]
+            name = self.SERVICE_MAP[domain.domain]
         except KeyError:
-            name = False
+            name = ".".join(domain)
         if name in mapping:
-            return mapping[name] + Service(name, hits=hits) 
+            category = mapping[name]['category']
+            return Service(name, category=category, hits=hits, domains=domain) 
         else:
-            return Domain(domain, hits=hits)
+            return Domain(name, domains=domain, hits=hits)
     
     def fromname(self, service_name):
         """Returns a tuple of service domains given a name, or False if nonexistent."""
@@ -170,10 +188,14 @@ class LeakResults(object):
 
     @pipeline
     def domainstoservices(self): 
-        """Turns browsing history into a list of Services""" 
+        """Turns browsing history into a list of Services and aggregates into service/domain list.""" 
         for k in self.available_keys('domains'):
+            # Turn raw domains into services
             assert type(self.processed[k]) == Counter
-            self.temp[k + "-svc"] = [self.map.fromdomain(domain.domain, hits=count) for domain, count in self.processed[k].items()]
+            self.temp[k + "-svc"] = [self.map.fromdomain(domain, hits=count) for domain, count in self.processed[k].items()]
+
+        # Combine lists of services and duplicates
+ #       for k, v in self.temp.items():
     
     def available_keys(self, category):
         """Return the overlap between the available keys (data you have) and all relevant
@@ -190,13 +212,3 @@ class LeakResults(object):
             
         
     pipeline = staticmethod(pipeline)    
-
-
-def genservice(name, hits=None):
-    """Returns a Service if information on it already exists, otherwise a name."""
-    from serviceList import mapping as services
-
-    if name in services:
-        return services[name] + Service(name, hits=hits) 
-    else:
-        return Domain(name, hits=hits)    
