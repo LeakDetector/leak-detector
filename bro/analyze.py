@@ -2,8 +2,12 @@ from collections import Counter
 from utils import merge_dicts
 from functools import wraps
 from operator import itemgetter
+from calais.base.client import Calais
+
 import tldextract
 import json
+import itertools
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -41,11 +45,11 @@ class Service(object):
             else:
                 return self.name == other.name and self.category == other.category
         elif type(other) is str:
-            return other == self.name
+            return other == self.name 
         elif type(other) is Domain:
-            return Domain.domains[0].registered_domain == self.domains[0].registered_domain
+            return Domain.domains.registered_domain == self.domains.registered_domain
         elif type(other) is tldextract.ExtractResult:
-            return self.domains[0].registered_domain == other.registered_domain
+            return self.domains.registered_domain == other.registered_domain
         
     def __add__(self, other):
         if self == other:
@@ -60,10 +64,9 @@ class Domain(Service):
         super(Domain, self).__init__(name, domains=domains, hits=hits)
 
     def __repr__(self):
-        return "Domain('%s')" % self.name    
+        return "Domain('%s', hits=%d)" % (self.name, self.hits)
         
 class Email(tuple):
-    
     """
     Internal representation of an email address, which contains the address portion, 
     a parsed domain, and the plaintext.
@@ -88,6 +91,19 @@ class Email(tuple):
     address = property(itemgetter(0))
     host = property(itemgetter(1))
     plaintext = property(itemgetter(2))
+
+class Categorizer(object):
+    CALAIS_KEY = "bee36xz3n48wfd6kje5k2bqu"
+
+    def __init__(self):
+        # 6/24 - coming back to this in a few days 
+        raise NotImplementedError 
+        self.api = Calais(CALAIS_KEY, submitter="leakdetector-dev-cmu")
+
+    def relevant_tags(self, url):
+        result = self.api.analyze_url(url)
+        topicattrs = tuple(set(("topics", "relations", "languages", "entities")) & set(result.__dict__.keys()))
+        
         
 class ServiceMap(object):
     """Allows you to map domain names to service names."""
@@ -95,7 +111,7 @@ class ServiceMap(object):
     def __init__(self):
         from serviceList import domainmap
         
-        self.domainmap = domainmap
+        self.domainmap = domainmap        
         self.process_map()
         
     def process_map(self):
@@ -122,6 +138,10 @@ class ServiceMap(object):
             name = self.SERVICE_MAP[domain.domain]
         except KeyError:
             name = ".".join(domain)
+            if name.startswith(".."): 
+                name = name[2:]
+            elif name.startswith("."): 
+                name = name[1:]
         if name in mapping:
             category = mapping[name]['category']
             return Service(name, category=category, hits=hits, domains=domain) 
@@ -189,13 +209,17 @@ class LeakResults(object):
     @pipeline
     def domainstoservices(self): 
         """Turns browsing history into a list of Services and aggregates into service/domain list.""" 
+        services_temp = {}
         for k in self.available_keys('domains'):
             # Turn raw domains into services
             assert type(self.processed[k]) == Counter
-            self.temp[k + "-svc"] = [self.map.fromdomain(domain, hits=count) for domain, count in self.processed[k].items()]
+            services_temp[k] = [self.map.fromdomain(domain, hits=count) for domain, count in self.processed[k].items()]
 
         # Combine lists of services and duplicates
- #       for k, v in self.temp.items():
+        for k in services_temp:
+            sortedbyname = sorted(services_temp[k], key=lambda svc: svc.name)
+            aggregated =  itertools.groupby(sortedbyname, lambda svc: svc.name)
+            self.temp["service-"+k] = [reduce(Service.__add__, records) for name, records in aggregated]
     
     def available_keys(self, category):
         """Return the overlap between the available keys (data you have) and all relevant
