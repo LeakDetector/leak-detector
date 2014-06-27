@@ -2,6 +2,7 @@ module regexes;
 
 global title_set: set[string];
 
+
 export {
     redef enum Log::ID += { LOG };
 
