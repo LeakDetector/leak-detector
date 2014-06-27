@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, namedtuple
 from utils import merge_dicts
 from functools import wraps
 from operator import itemgetter
@@ -92,6 +92,30 @@ class Email(tuple):
     host = property(itemgetter(1))
     plaintext = property(itemgetter(2))
 
+class Form(tuple):
+    """
+    Internal representation of form data.
+    """
+    
+    __slots__ = ()
+    _fields = ('host', 'uri', 'data')
+    
+    def __new__(_cls, plaintext):
+        host = tldextract.extract(plaintext[0])
+        uri = plaintext[1]
+        # Comes in format name=value&name2=value2, so split into dictionary
+        data = {attr[0]: attr[1] for attr in [field.split('=') for field in plaintext.split('&')]}
+
+        return tuple.__new__(_cls, (host, uri, data))
+
+    def __repr__(self):
+        return "Form(host=%s, uri=%s, data=%s)" % self
+
+    host = property(itemgetter(0))
+    uri = property(itemgetter(1))
+    data = property(itemgetter(2))
+    
+
 class Categorizer(object):
     CALAIS_KEY = "bee36xz3n48wfd6kje5k2bqu"
 
@@ -168,10 +192,11 @@ class LeakResults(object):
             'domains': ['visited-subdomains', 'private-browsing','https-servers'],
             'email': ['email'],
             'services': ['visited-subdomains', 'private-browsing','https-servers', 'html-titles'],
-            'system': ['os', 'browser']
+            'system': ['os', 'browser'],
+            'forms': ['formdata']
         }
-        # Analysis pipeline (not automatically executed yet)
-        self.analyses = [self.domainparsing, self.countservices, self.domainstoservices, self.emailvalidation]
+        # Analysis pipeline 
+        self.analyses = []
         
     def pipeline(func):
         """Wrapper function for all the operations in the data processing pipeline.
@@ -180,6 +205,7 @@ class LeakResults(object):
         """
         @wraps(func)
         def wrapped(self, *args, **kwargs):
+            self.analyses.append(func)
             # temporary dictionary
             self.temp = {} 
             # call the function to do the processing
@@ -220,7 +246,12 @@ class LeakResults(object):
             sortedbyname = sorted(services_temp[k], key=lambda svc: svc.name)
             aggregated =  itertools.groupby(sortedbyname, lambda svc: svc.name)
             self.temp["service-"+k] = [reduce(Service.__add__, records) for name, records in aggregated]
-    
+            
+    @pipeline
+    def processformdata(self):
+        for k in self.available_keys('forms'):
+            self.temp[k] = [Form(data) for data in self.leaks[k]]
+        
     def available_keys(self, category):
         """Return the overlap between the available keys (data you have) and all relevant
         keys (data that you want)."""
