@@ -8,7 +8,6 @@ export {
 
     type Info: record {
 		ts:			time	&log;
-		cookie:		string	&log &optional;
 		host:		string	&log;
 		uri:		string 	&log;
         };
@@ -21,7 +20,6 @@ event bro_init()
 }
 
 																		
-}  
 event http_reply(c: connection, version: string, code: count, reason: string)
 {
 	if ( c$http$method == "GET" ) 
