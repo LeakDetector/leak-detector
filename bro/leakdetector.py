@@ -9,6 +9,7 @@ import utils
 import subprocess
 import signal
 import glob
+
 from userdata import UserData
 import parsers
 
@@ -24,9 +25,10 @@ BRO_LOGS = {
     'dns.log': parsers.DNSLogParser,
     'regexes.log': parsers.RegexesLogParser,
     'private_browsing.log': parsers.PBLogParser,
-    'ssl.log': parsers.SSLLogParser
+    'ssl.log': parsers.SSLLogParser,
+    'http_form.log': parsers.FormLogParser,
+    'cookie.log': parsers.CookieLogParser
 }
-
 
 def analyze_logs(log_dir):
     userdata = UserData()

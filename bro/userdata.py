@@ -1,9 +1,11 @@
 import json
 import pprint
+import Cookie
+import tldextract
+from operator import itemgetter
 from collections import defaultdict
 
 class UserData(object):
-
     def __init__(self, data={}):
         self.data = data
         self.output_filter = []
@@ -39,3 +41,111 @@ class UserData(object):
     def __to_json(self):
         return json.dumps(self.filtered_output)
     json = property(__to_json)
+    
+class Service(object):
+    """Class for grouping extracted domains and other elements under one service-related umbrella.
+    
+    A service has a name at a bare minimum, has a hit counter, and can be extended to contain any other
+    data that would be relevant (e.g., usernames and passwords).
+    """
+    def __init__(self, name, description=None, category=None, domains=[], hits=0):
+        self.name = name
+        self.description = description
+        self.category = category      
+        self.hits = hits
+        self.domains = domains
+    
+    def __repr__(self):
+        return """Service('%s', description=%s, category='%s', hits=%s)""" % (self.name, self.description, self.category, self.hits)
+        
+    def __str__(self):
+        return "Service --> %s" % self.__dict__
+    
+    def __hash__(self):
+        return hash(self.name+self.description+self.category)
+        
+    def __eq__(self, other):
+        """Equal if: same name, string with same name as service, domains are equal."""
+        
+        if type(other) is Service:
+            if not other.category or not self.category:
+                return self.name == other.name
+            else:
+                return self.name == other.name and self.category == other.category
+        elif type(other) is str:
+            return other == self.name 
+        elif type(other) is Domain:
+            return Domain.domains.registered_domain == self.domains.registered_domain
+        elif type(other) is tldextract.ExtractResult:
+            return self.domains.registered_domain == other.registered_domain
+        
+    def __add__(self, other):
+        if self == other:
+            return Service(self.name, description=self.description, \
+                           category=self.category, hits=self.hits+other.hits)
+        else:
+            raise TypeError('You cannot combine two Service instances that are for different services.')          
+
+class Domain(Service):
+    """A Domain is a Service without any identifying info. Kind of a placeholder right now."""
+    def __init__(self, name, domains=[], hits=None):
+        super(Domain, self).__init__(name, domains=domains, hits=hits)
+
+    def __repr__(self):
+        return "Domain('%s', hits=%d)" % (self.name, self.hits)
+        
+class Email(tuple):
+    """
+    Internal representation of an email address, which contains the address portion, 
+    a parsed domain, and the plaintext.
+    
+    Email(plaintext) --> Email(address, domain, plaintext)"""
+    
+    __slots__ = ()
+    _fields = ('address', 'host', 'plaintext')
+    
+    def __new__(_cls, plaintext):
+        host = tldextract.extract(plaintext)
+        
+        # Very basic check... the rest should be taken care of by the regexes already.
+        if '@' not in plaintext:
+            raise ValueError("This doesn't look like a valid email address.")
+        address = plaintext.split('@')[0]
+        return tuple.__new__(_cls, (address, host, plaintext))
+
+    def __repr__(self):
+        return "Email(address=%s, host=%s, plaintext=%s)" % self
+
+    address = property(itemgetter(0))
+    host = property(itemgetter(1))
+    plaintext = property(itemgetter(2))
+
+class Form(tuple):
+    """
+    Internal representation of form data. Parses a (domain, uri, querystring) tuple
+    into a host, uri, and form-data-dict tuple.
+    """
+    
+    __slots__ = ()
+    _fields = ('host', 'uri', 'data')
+    
+    def __new__(_cls, plaintext):
+        host = tldextract.extract(plaintext[0])
+        uri = plaintext[1]
+        # Comes in format name=value&name2=value2, so split into dictionary
+        data = {attr[0]: attr[1] for attr in [field.split('=') for field in plaintext[2].split('&')]}
+
+        return tuple.__new__(_cls, (host, uri, data))
+
+    def __repr__(self):
+        return "Form(host=%s, uri=%s, data=%s)" % self
+
+    host = property(itemgetter(0))
+    uri = property(itemgetter(1))
+    data = property(itemgetter(2))
+    
+class UserCookie(Cookie.SimpleCookie):    
+    """Subclass of SimpleCookie with a slot to hold domain information."""
+    def __init__(self, cookiestr, host=None):
+        super(UserCookie, self).__init__(cookiestr)
+        if host: self.domain = tldextract.extract(host)

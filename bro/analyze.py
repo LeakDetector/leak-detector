@@ -1,120 +1,17 @@
 from collections import Counter, namedtuple
 from utils import merge_dicts
 from functools import wraps
-from operator import itemgetter
 from calais.base.client import Calais
 
 import tldextract
 import json
 import itertools
-
 try:
     import cPickle as pickle
 except ImportError:
-    import pickle
-
-
-class Service(object):
-    """Class for grouping extracted domains and other elements under one service-related umbrella.
+    import pickle    
     
-    A service has a name at a bare minimum, has a hit counter, and can be extended to contain any other
-    data that would be relevant (e.g., usernames and passwords).
-    """
-    def __init__(self, name, description=None, category=None, domains=[], hits=0):
-        self.name = name
-        self.description = description
-        self.category = category      
-        self.hits = hits
-        self.domains = domains
-    
-    def __repr__(self):
-        return """Service('%s', description=%s, category='%s', hits=%s)""" % (self.name, self.description, self.category, self.hits)
-        
-    def __str__(self):
-        return "Service --> %s" % self.__dict__
-    
-    def __hash__(self):
-        return hash(self.name+self.description+self.category)
-        
-    def __eq__(self, other):
-        """Equal if: same name, string with same name as service, domains are equal."""
-        
-        if type(other) is Service:
-            if not other.category or not self.category:
-                return self.name == other.name
-            else:
-                return self.name == other.name and self.category == other.category
-        elif type(other) is str:
-            return other == self.name 
-        elif type(other) is Domain:
-            return Domain.domains.registered_domain == self.domains.registered_domain
-        elif type(other) is tldextract.ExtractResult:
-            return self.domains.registered_domain == other.registered_domain
-        
-    def __add__(self, other):
-        if self == other:
-            return Service(self.name, description=self.description, \
-                           category=self.category, hits=self.hits+other.hits)
-        else:
-            raise TypeError('You cannot combine two Service instances that are for different services.')          
-
-class Domain(Service):
-    """A Domain is a Service without any identifying info. Kind of a placeholder right now."""
-    def __init__(self, name, domains=[], hits=None):
-        super(Domain, self).__init__(name, domains=domains, hits=hits)
-
-    def __repr__(self):
-        return "Domain('%s', hits=%d)" % (self.name, self.hits)
-        
-class Email(tuple):
-    """
-    Internal representation of an email address, which contains the address portion, 
-    a parsed domain, and the plaintext.
-    
-    Email(plaintext) --> Email(address, domain, plaintext)"""
-    
-    __slots__ = ()
-    _fields = ('address', 'host', 'plaintext')
-    
-    def __new__(_cls, plaintext):
-        host = tldextract.extract(plaintext)
-        
-        # Very basic check... the rest should be taken care of by the regexes already.
-        if '@' not in plaintext:
-            raise ValueError("This doesn't look like a valid email address.")
-        address = plaintext.split('@')[0]
-        return tuple.__new__(_cls, (address, host, plaintext))
-
-    def __repr__(self):
-        return "Email(address=%s, host=%s, plaintext=%s)" % self
-
-    address = property(itemgetter(0))
-    host = property(itemgetter(1))
-    plaintext = property(itemgetter(2))
-
-class Form(tuple):
-    """
-    Internal representation of form data.
-    """
-    
-    __slots__ = ()
-    _fields = ('host', 'uri', 'data')
-    
-    def __new__(_cls, plaintext):
-        host = tldextract.extract(plaintext[0])
-        uri = plaintext[1]
-        # Comes in format name=value&name2=value2, so split into dictionary
-        data = {attr[0]: attr[1] for attr in [field.split('=') for field in plaintext.split('&')]}
-
-        return tuple.__new__(_cls, (host, uri, data))
-
-    def __repr__(self):
-        return "Form(host=%s, uri=%s, data=%s)" % self
-
-    host = property(itemgetter(0))
-    uri = property(itemgetter(1))
-    data = property(itemgetter(2))
-    
+from userdata import *
 
 class Categorizer(object):
     CALAIS_KEY = "bee36xz3n48wfd6kje5k2bqu"
@@ -151,7 +48,7 @@ class ServiceMap(object):
         # And create a new dictionary for name --> domain lookup.        
         self.service_names = {v:k for k, v in self.domainmap.items()}    
         
-        # And create the TLD validation list    
+        # And open the TLD validation list    
         with open("includes/processed-psl.dat") as f: self.psl = pickle.load(f)
 
     def fromdomain(self, domain, hits=0):
@@ -193,7 +90,8 @@ class LeakResults(object):
             'email': ['email'],
             'services': ['visited-subdomains', 'private-browsing','https-servers', 'html-titles'],
             'system': ['os', 'browser'],
-            'forms': ['formdata']
+            'forms': ['formdata'],
+            'cookies': ['cookies']
         }
         # Analysis pipeline 
         self.analyses = []
@@ -251,6 +149,11 @@ class LeakResults(object):
     def processformdata(self):
         for k in self.available_keys('forms'):
             self.temp[k] = [Form(data) for data in self.leaks[k]]
+            
+    @pipeline
+    def processcookies(self):
+        for k in self.available_keys('cookies'):
+            self.temp[k] = [UserCookie(data) for data in self.leaks[k]]
         
     def available_keys(self, category):
         """Return the overlap between the available keys (data you have) and all relevant
