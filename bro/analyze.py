@@ -1,7 +1,7 @@
 from collections import Counter, namedtuple
 from utils import merge_dicts
 from functools import wraps
-from calais.base.client import Calais
+from alchemyapi import alchemyapi
 
 import tldextract
 import json
@@ -12,19 +12,6 @@ except ImportError:
     import pickle    
     
 from userdata import *
-
-class Categorizer(object):
-    CALAIS_KEY = "bee36xz3n48wfd6kje5k2bqu"
-
-    def __init__(self):
-        # 6/24 - coming back to this in a few days 
-        raise NotImplementedError 
-        self.api = Calais(CALAIS_KEY, submitter="leakdetector-dev-cmu")
-
-    def relevant_tags(self, url):
-        result = self.api.analyze_url(url)
-        topicattrs = tuple(set(("topics", "relations", "languages", "entities")) & set(result.__dict__.keys()))
-        
         
 class ServiceMap(object):
     """Allows you to map domain names to service names."""
@@ -65,7 +52,7 @@ class ServiceMap(object):
                 name = name[1:]
         if name in mapping:
             category = mapping[name]['category']
-            return Service(name, category=category, hits=hits, domains=domain) 
+            return Service(name, category=category, hits=hits, domains=domain.domain) 
         else:
             return Domain(name, domains=domain, hits=hits)
     
@@ -78,6 +65,10 @@ class ServiceMap(object):
 
 class LeakResults(object):
     """Holds the JSON export for processing (for now.)"""
+    
+    # For categorization; AlchemyAPI allows 1K hits/day
+    ALCHEMY_API_KEY = "48980ef6932f3393a5a3059021e9645857cc3c12"
+    
     def __init__(self, outfile):
         with open(outfile) as f:
             self.leaks = json.load(f)
@@ -93,9 +84,16 @@ class LeakResults(object):
             'forms': ['formdata'],
             'cookies': ['cookies']
         }
+        
         # Analysis pipeline 
         self.analyses = []
         
+    def __getitem__(self, key):
+        try:
+            return self.processed[key]
+        except KeyError:
+            return self.leaks[key]    
+            
     def pipeline(func):
         """Wrapper function for all the operations in the data processing pipeline.
         When used via the @pipeline decorator, self.temp will automatically be initialized
@@ -146,6 +144,10 @@ class LeakResults(object):
             self.temp["service-"+k] = [reduce(Service.__add__, records) for name, records in aggregated]
             
     @pipeline
+    def processhttpinfo(self):
+        self.temp['http-pages'] = [(tldextract.extract(data[0]), data[1]) for data in self.leaks['http-pages']]
+
+    @pipeline
     def processformdata(self):
         for k in self.available_keys('forms'):
             self.temp[k] = [Form(data) for data in self.leaks[k]]
@@ -154,6 +156,14 @@ class LeakResults(object):
     def processcookies(self):
         for k in self.available_keys('cookies'):
             self.temp[k] = [UserCookie(data) for data in self.leaks[k]]
+            
+    # @pipeline
+    # def categorize(self):
+    #     self.api = alchemyapi.AlchemyAPI(self.ALCHEMY_API_KEY)
+    #     categorize_url = lambda query: self.api.taxonomy("url", query)
+    #     results = [
+    #         categorize_url(url) for url in []
+    #     ]
         
     def available_keys(self, category):
         """Return the overlap between the available keys (data you have) and all relevant
