@@ -1,6 +1,5 @@
 import json
 import pprint
-import Cookie
 import tldextract
 from operator import itemgetter
 from collections import defaultdict
@@ -62,7 +61,7 @@ class Service(object):
         return "Service --> %s" % self.__dict__
     
     def __hash__(self):
-        return hash(self.name+self.description+self.category)
+        return hash("%s%s%s"%(self.name, self.description, self.category))
         
     def __eq__(self, other):
         """Equal if: same name, string with same name as service, domains are equal."""
@@ -75,9 +74,12 @@ class Service(object):
         elif type(other) is str:
             return other == self.name 
         elif type(other) is Domain:
-            return Domain.domains.registered_domain == self.domains.registered_domain
+            return other.domains.registered_domain == self.domains.registered_domain
         elif type(other) is tldextract.ExtractResult:
-            return self.domains.registered_domain == other.registered_domain
+            if self.domains:
+                return self.domains.registered_domain == other.registered_domain
+            else:
+                return False    
         
     def __add__(self, other):
         if self == other:
@@ -143,9 +145,3 @@ class Form(tuple):
     host = property(itemgetter(0))
     uri = property(itemgetter(1))
     data = property(itemgetter(2))
-    
-class UserCookie(Cookie.SimpleCookie):    
-    """Subclass of SimpleCookie with a slot to hold domain information."""
-    def __init__(self, cookiestr, host=None):
-        super(UserCookie, self).__init__(cookiestr)
-        if host: self.domain = tldextract.extract(host)

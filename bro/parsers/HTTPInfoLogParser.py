@@ -8,6 +8,6 @@ class FormLogParser(BroLogParser):
         host = r['host']
         uri = r['uri']
         if host != "-" or uri != "-": 
-            self.data['http-pages'].append( (host,uri) )
+            self.data['http-pages'].add( (host,uri) )
 
 
