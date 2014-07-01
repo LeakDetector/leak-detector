@@ -9,6 +9,6 @@ class CookieLogParser(BroLogParser):
         host = r['host']
         cookie = r['cookie']
         if host != "-":
-            self.data['cookies'].append( (host,cookie) )
+            self.data['cookies'].add( (host,cookie) )
 
 

@@ -2,10 +2,14 @@ from collections import Counter, namedtuple
 from utils import merge_dicts
 from functools import wraps
 from alchemyapi import alchemyapi
+from cookies import Cookies
+from google_analytics_cookie import *
 
+import inspect
 import tldextract
 import json
 import itertools
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -78,16 +82,20 @@ class LeakResults(object):
         # A list of trace outputs relevant to different areas of interest.
         self.relevant_keys = {
             'domains': ['visited-subdomains', 'private-browsing','https-servers'],
-            'email': ['email'],
+            'personal-info': ['email', 'phone', 'http-usernames', 'http-passwords'],
             'services': ['visited-subdomains', 'private-browsing','https-servers', 'html-titles'],
             'system': ['os', 'browser'],
             'forms': ['formdata'],
-            'cookies': ['cookies']
+            'cookies': ['cookies'],
+            'misc': ['html-titles', 'http-pages'],
+            'names': ['welcome', 'hi']
         }
         
         # Analysis pipeline 
-        self.analyses = []
-        
+        self.analyses = [self._emailvalidation, self._domainparsing, 
+                    self._countservices, self._domainstoservices, 
+                    self._processhttpinfo, self._combine, self._processcookies]
+                    
     def __getitem__(self, key):
         try:
             return self.processed[key]
@@ -101,7 +109,6 @@ class LeakResults(object):
         """
         @wraps(func)
         def wrapped(self, *args, **kwargs):
-            self.analyses.append(func)
             # temporary dictionary
             self.temp = {} 
             # call the function to do the processing
@@ -111,25 +118,25 @@ class LeakResults(object):
         return wrapped
     
     @pipeline
-    def emailvalidation(self):
+    def _emailvalidation(self):
         """Removes unhelpful email-like strings from the email list (e.g. 'icon@2xresolution.png')."""
         for k in self.available_keys('email'):
             self.temp[k] = [Email(addr) for addr in self.leaks[k] if Email(addr).host.suffix in self.map.psl]
 
     @pipeline
-    def domainparsing(self):
+    def _domainparsing(self):
         """Parses all the domains into a (plaintext, ExtractResult) tuple."""
         for k in self.available_keys('domains'):
             self.temp[k] = [(domain, tldextract.extract(domain)) for domain in self.leaks[k]]
             
     @pipeline
-    def countservices(self):
+    def _countservices(self):
         """Produces a 'hit count' from browsing history."""
         for k in self.available_keys('domains'):
             self.temp[k] = Counter(domain[1] for domain in self.processed[k])
 
     @pipeline
-    def domainstoservices(self): 
+    def _domainstoservices(self): 
         """Turns browsing history into a list of Services and aggregates into service/domain list.""" 
         services_temp = {}
         for k in self.available_keys('domains'):
@@ -144,21 +151,68 @@ class LeakResults(object):
             self.temp["service-"+k] = [reduce(Service.__add__, records) for name, records in aggregated]
             
     @pipeline
-    def processhttpinfo(self):
+    def _processhttpinfo(self):
         self.temp['http-pages'] = [(tldextract.extract(data[0]), data[1]) for data in self.leaks['http-pages']]
 
     @pipeline
-    def processformdata(self):
+    def _processformdata(self):
         for k in self.available_keys('forms'):
             self.temp[k] = [Form(data) for data in self.leaks[k]]
             
     @pipeline
-    def processcookies(self):
-        for k in self.available_keys('cookies'):
-            self.temp[k] = [UserCookie(data) for data in self.leaks[k]]
+    def _combine(self):
+        # Collapse with common data types
+        self.leaks['combined'] = set(reduce(list.__add__, 
+                                 [self.leaks['service-'+k] for k in self.available_keys('domains')
+                                 if 'private-browsing' not in k] ))
+                   
+    @pipeline
+    def _processcookies(self):
+        # future: extract info per service (i.e. United flight searches)
+        
+        self.temp['cookies'] = []
+        # Extract cookies into key-value format
+        for domain, cdata in self.leaks['cookies']:
+            try:
+                container = Cookies.from_request("Cookie: %s" % cdata, ignore_bad_cookies=True)
+                container.domain = tldextract.extract(domain)
+                self.temp['cookies'].append(container)
+            except:
+                # Some sites have cookies that are apparently VERY not up to spec
+                continue
+                
+        # Analyze google analytics cookies
+        ga_cookies = [c for c in self.temp['cookies'] if "__utma" in c]
+        relevant_cookies = []
+        for cookie in ga_cookies:
+            gatime = GoogleAnalyticsCookie(utma=i['__utma'].value).utma
+            relevant_cookies.append((i.domain, gatime['first_visit_at'], gatime['previous_visit_at']))
             
+            for domain, first, prev in set(relevant_cookies):
+                if domain in combined:
+                    idx = self.leaks['combined'].index(domain)
+                    self.leaks['combined'][idx].first_visit = first
+                    self.leaks['combined'][idx].prev_visit = prev
+
+                    
+    def _prep_export(self):
+
+        # Dict to store data for export           
+        self.info = {
+            'services': [svc for svc in combined if type(svc) == Service],
+            'domains': [dom for dom in combined if type(svc) == Domain],
+            'private-browsing': self.leaks['service-private-browsing'],
+            'system': {k:self.leaks[k] for k in self.available_keys('system')}
+            'personal-info': {k:self.leaks[k] for k in self.available_keys('personal-info')},
+            'other': {k:self.leaks[k] for k in self.available_keys('other')}
+
+        }
+
+        # formdata: more processing
+        
+        
     # @pipeline
-    # def categorize(self):
+    # def _categorize(self):
     #     self.api = alchemyapi.AlchemyAPI(self.ALCHEMY_API_KEY)
     #     categorize_url = lambda query: self.api.taxonomy("url", query)
     #     results = [
@@ -176,7 +230,6 @@ class LeakResults(object):
         [function() for function in self.analyses]
         
         # merge intermediates with original dictionary
-        merge_dicts(self.processed, self.leaks)
-            
+        self.leaks = merge_dicts(self.leaks, self.processed)
         
     pipeline = staticmethod(pipeline)    
