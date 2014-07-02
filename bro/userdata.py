@@ -47,7 +47,7 @@ class Service(object):
     A service has a name at a bare minimum, has a hit counter, and can be extended to contain any other
     data that would be relevant (e.g., usernames and passwords).
     """
-    def __init__(self, name, description=None, category=None, domains=[], hits=0):
+    def __init__(self, name, description=None, category=None, domains="", hits=0):
         self.name = name
         self.description = description
         self.category = category      
@@ -72,9 +72,12 @@ class Service(object):
             else:
                 return self.name == other.name and self.category == other.category
         elif type(other) is str:
-            return other == self.name 
+            return (other == self.name) or (other in self.domains)
         elif type(other) is Domain:
-            return other.domains.registered_domain == self.domains.registered_domain
+            if other.domains:
+                return other.domains.registered_domain == self.domains.registered_domain
+            else:
+                return False    
         elif type(other) is tldextract.ExtractResult:
             if self.domains:
                 return self.domains.registered_domain == other.registered_domain
@@ -94,7 +97,7 @@ class Domain(Service):
         super(Domain, self).__init__(name, domains=domains, hits=hits)
 
     def __repr__(self):
-        return "Domain('%s', hits=%d)" % (self.name, self.hits)
+        return "Domain('%s', hits=%s)" % (self.name, self.hits)
         
 class Email(tuple):
     """

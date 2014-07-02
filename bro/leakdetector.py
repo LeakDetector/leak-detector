@@ -27,7 +27,8 @@ BRO_LOGS = {
     'private_browsing.log': parsers.PBLogParser,
     'ssl.log': parsers.SSLLogParser,
     'http_form.log': parsers.FormLogParser,
-    'cookie.log': parsers.CookieLogParser
+    'cookie.log': parsers.CookieLogParser,
+    'http_info.log': parsers.HTTPInfoLogParser
 }
 
 def analyze_logs(log_dir):

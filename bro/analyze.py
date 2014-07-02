@@ -9,6 +9,7 @@ import inspect
 import tldextract
 import json
 import itertools
+import re
 
 try:
     import cPickle as pickle
@@ -87,7 +88,7 @@ class LeakResults(object):
             'system': ['os', 'browser'],
             'forms': ['formdata'],
             'cookies': ['cookies'],
-            'misc': ['html-titles', 'http-pages'],
+            'misc': ['html-titles', 'http-queries'],
             'names': ['welcome', 'hi']
         }
         
@@ -120,7 +121,7 @@ class LeakResults(object):
     @pipeline
     def _emailvalidation(self):
         """Removes unhelpful email-like strings from the email list (e.g. 'icon@2xresolution.png')."""
-        for k in self.available_keys('email'):
+        for k in ['email']:
             self.temp[k] = [Email(addr) for addr in self.leaks[k] if Email(addr).host.suffix in self.map.psl]
 
     @pipeline
@@ -152,7 +153,7 @@ class LeakResults(object):
             
     @pipeline
     def _processhttpinfo(self):
-        self.temp['http-pages'] = [(tldextract.extract(data[0]), data[1]) for data in self.leaks['http-pages']]
+        self.temp['http-queries'] = [(tldextract.extract(data[0]), data[1]) for data in self.leaks['http-queries']]
 
     @pipeline
     def _processformdata(self):
@@ -162,9 +163,9 @@ class LeakResults(object):
     @pipeline
     def _combine(self):
         # Collapse with common data types
-        self.leaks['combined'] = set(reduce(list.__add__, 
-                                 [self.leaks['service-'+k] for k in self.available_keys('domains')
-                                 if 'private-browsing' not in k] ))
+        self.leaks['combined'] = list(set(reduce(list.__add__, 
+                                 [self.processed['service-'+k] for k in self.available_keys('domains')
+                                 if 'private-browsing' not in k] )))
                    
     @pipeline
     def _processcookies(self):
@@ -185,16 +186,57 @@ class LeakResults(object):
         ga_cookies = [c for c in self.temp['cookies'] if "__utma" in c]
         relevant_cookies = []
         for cookie in ga_cookies:
-            gatime = GoogleAnalyticsCookie(utma=i['__utma'].value).utma
-            relevant_cookies.append((i.domain, gatime['first_visit_at'], gatime['previous_visit_at']))
+            gatime = GoogleAnalyticsCookie(utma=cookie['__utma'].value).utma
+            relevant_cookies.append((cookie.domain, gatime['first_visit_at'], gatime['previous_visit_at']))
             
             for domain, first, prev in set(relevant_cookies):
-                if domain in combined:
+                if domain in self.leaks['combined']:
                     idx = self.leaks['combined'].index(domain)
                     self.leaks['combined'][idx].first_visit = first
                     self.leaks['combined'][idx].prev_visit = prev
-
                     
+    @pipeline                
+    def _grabqueries(self):
+        self.temp['queries'] = []
+        self.temp['queries-by-site'] = {}
+        
+        # Regexes
+        amazon_asin = re.compile(r"(/|a=|dp|gp/product)([a-zA-Z0-9]{10})") 
+        ebay_item = re.compile(r'/itm/(.+)/([0-9]{12})')
+        wiki_page = re.compile("/wiki/(?<!Special:)(.+)$")
+        
+        
+        filter_keywords = ["q=", "kwd=", "search="]
+        # re.compile("search=([^&]*)")
+        site_matching = { 
+            "wikipedia.org": wiki_page,
+            "ebay.com": ebay_item,
+            "amazon.com": amazon_asin 
+        }
+        
+        interesting_queries = [(domain, uri) for domain, uri in self.leaks['http-queries'] 
+                                if any(key in uri for key in filter_keywords)]
+        interesting_sites = [(domain, uri) for domain, uri in self.leaks['http-queries'] 
+                                if any(key == domain.registered_domain for key in site_matching.keys())]
+        
+        for domain, uri in interesting_queries:
+            queryvar = [var for var in filter_keywords if var in uri][0]
+            searchterm = re.compile("%s([^&]*)" % queryvar ).findall(uri)
+            self.temp['queries'].append( (domain, searchterm) )
+            # integrate into Domain()s or Service()s in self.leaks['combined']
+            # Service.search_terms = []
+            
+        for domain, uri in interesting_sites:
+            matches = re.compile(site_matching[domain.registered_domain]).findall(uri)
+            if matches and domain.subdomain not in ['fls-na', 'fls', 'files', 'img', 'images']:
+                if domain.registered_domain not in self.temp['queries-by-site']:
+                    self.temp['queries-by-site'][domain.registered_domain] = []
+                self.temp['queries-by-site'][domain.registered_domain].append( (domain, matches) )
+                
+            # integrate into Domain()s or Service()s in self.leaks['combined']
+            # Service.products --> ASIN to product; Service.queries (Wiki)
+            # Also a chance to integrate page titles?
+
     def _prep_export(self):
 
         # Dict to store data for export           
@@ -202,13 +244,13 @@ class LeakResults(object):
             'services': [svc for svc in combined if type(svc) == Service],
             'domains': [dom for dom in combined if type(svc) == Domain],
             'private-browsing': self.leaks['service-private-browsing'],
-            'system': {k:self.leaks[k] for k in self.available_keys('system')}
+            'system': {k:self.leaks[k] for k in self.available_keys('system')},
             'personal-info': {k:self.leaks[k] for k in self.available_keys('personal-info')},
+            'queries-and-searches': [self.leaks['queries'], self.leaks['queries-by-site']],
             'other': {k:self.leaks[k] for k in self.available_keys('other')}
 
         }
 
-        # formdata: more processing
         
         
     # @pipeline
