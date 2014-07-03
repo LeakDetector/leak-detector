@@ -39,9 +39,3 @@ class Ebay(object):
         attrtags = ['title', 'convertedcurrentprice', 'primarycategoryname', 'galleryurl']
         name, price, description, image = [itemattr(attr) for attr in attrtags]
         return Product(name, price=price, description=description, image=image, vendor="eBay")
-        
-        
-
-                
-            "CMUHCII7a-a7be-484f-8f81-d600d641438"
-            includes/amazon-api.dat
