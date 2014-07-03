@@ -85,9 +85,13 @@ class Service(object):
                 return False    
         
     def __add__(self, other):
+        import copy
         if self == other:
-            return Service(self.name, description=self.description, \
-                           category=self.category, hits=self.hits+other.hits)
+            attrs = copy.copy(self.__dict__)
+            attrs['hits'] = self.hits + other.hits
+            newsvc = Service(self.name)
+            newsvc.__dict__ = attrs
+            return newsvc
         else:
             raise TypeError('You cannot combine two Service instances that are for different services.')          
 
