@@ -55,7 +55,7 @@ class Service(object):
         self.domains = domains
     
     def __repr__(self):
-        return """Service('%s', description=%s, category='%s', hits=%s)""" % (self.name, self.description, self.category, self.hits)
+        return "Service(%s)" % ", ".join(["%s=%s"%(k,v) for k, v in x.__dict__.items()])
         
     def __str__(self):
         return "Service --> %s" % self.__dict__
@@ -72,7 +72,7 @@ class Service(object):
             else:
                 return self.name == other.name and self.category == other.category
         elif type(other) is str:
-            return (other == self.name) or (other in self.domains)
+            return (other == self.name) or (other == self.domains.registered_domain) or (other == self.domains.subdomain+self.domains.registered_domain)
         elif type(other) is Domain:
             if other.domains:
                 return other.domains.registered_domain == self.domains.registered_domain
@@ -101,7 +101,7 @@ class Domain(Service):
         super(Domain, self).__init__(name, domains=domains, hits=hits)
 
     def __repr__(self):
-        return "Domain('%s', hits=%s)" % (self.name, self.hits)
+        return "Domain(%s)" % ", ".join(["%s=%s"%(k,v) for k, v in x.__dict__.items()])
         
 class Email(tuple):
     """
@@ -152,3 +152,28 @@ class Form(tuple):
     host = property(itemgetter(0))
     uri = property(itemgetter(1))
     data = property(itemgetter(2))
+    
+class Product(object): 
+    def __init__(self, name, price=None, description=None, vendor=None, image=None):
+        self.name = name
+        self.price = price
+        self.description = description
+        self.vendor = vendor
+        self.image = image
+    
+    def __getitem__(self, key):
+        if hasattr(self, key):
+            return getattr(self, key)
+            
+    def __add__(self, other):
+        if self == other and self.description == other.description and self.price == other.price:
+            return self
+
+    def __repr__(self):
+        return "Product(%s)" % ", ".join(["%s=%s"%(k,v) for k, v in x.__dict__.items()])
+
+    def __eq__(self, other):
+        if type(other) is Product:
+            return self.name == other.name
+        elif type(other) is str:
+            return self.name == other

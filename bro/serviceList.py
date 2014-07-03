@@ -9,7 +9,9 @@ mapping = {
     'YouTube': {"category": "Video sharing"},
     'Amazon': {"category": "Shopping"},
     'New York Times': {"category": "News"},
-    'Google Analytics': {"category": "Tracking/advertising"}
+    'Google Analytics': {"category": "Tracking/advertising"},
+    'eBay': {"category": "Shopping"},
+    'Wikipedia': {"category": "Reference"}
 }
 
 # A list of trace outputs relevant to different areas of interest.
@@ -24,5 +26,7 @@ domainmap = {('fbcdn', 'facebook', 'fbstatic', 'fbexternal'): 'Facebook',
      ('youtube', 'ytimg'): 'YouTube',
      ('amazon', 'amazonsupply', 'images-amazon', 'amazonlocal', 'ssl-images-amazon'): 'Amazon',
      ('nytimes', 'nyt', 'nyti', 'nytstore', 'nytco'): 'New York Times',
-     ('google-analytics', 'googleanalytics'): 'Google Analytics'
+     ('google-analytics', 'googleanalytics'): 'Google Analytics',
+     ('ebay', 'ebaystatic', 'ebaypartnernetwork'): 'eBay',
+     ('wikipedia'): 'Wikipedia'
  }
