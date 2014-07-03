@@ -55,7 +55,7 @@ class Service(object):
         self.domains = domains
     
     def __repr__(self):
-        return "Service(%s)" % ", ".join(["%s=%s"%(k,v) for k, v in x.__dict__.items()])
+        return "Service(%s)" % ", ".join(["%s=%s"%(k,v) for k, v in self.__dict__.items()])
         
     def __str__(self):
         return "Service --> %s" % self.__dict__
@@ -101,7 +101,7 @@ class Domain(Service):
         super(Domain, self).__init__(name, domains=domains, hits=hits)
 
     def __repr__(self):
-        return "Domain(%s)" % ", ".join(["%s=%s"%(k,v) for k, v in x.__dict__.items()])
+        return "Domain(%s)" % ", ".join(["%s=%s"%(k,v) for k, v in self.__dict__.items()])
         
 class Email(tuple):
     """
@@ -170,7 +170,7 @@ class Product(object):
             return self
 
     def __repr__(self):
-        return "Product(%s)" % ", ".join(["%s=%s"%(k,v) for k, v in x.__dict__.items()])
+        return "Product(%s)" % ", ".join(["%s=%s"%(k,v) for k, v in self.__dict__.items()])
 
     def __eq__(self, other):
         if type(other) is Product:
