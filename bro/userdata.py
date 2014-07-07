@@ -1,6 +1,7 @@
 import json
 import pprint
 import tldextract
+import urlparse
 from operator import itemgetter
 from collections import defaultdict
 
@@ -71,7 +72,7 @@ class Service(object):
                 return self.name == other.name
             else:
                 return self.name == other.name and self.category == other.category
-        elif type(other) is str:
+        elif type(other) in [str, unicode]:
             return (other == self.name) or (other == self.domains.registered_domain) or (other == self.domains.subdomain+self.domains.registered_domain)
         elif type(other) is Domain:
             if other.domains:
@@ -141,8 +142,11 @@ class Form(tuple):
     def __new__(_cls, plaintext):
         host = tldextract.extract(plaintext[0])
         uri = plaintext[1]
-        # Comes in format name=value&name2=value2, so split into dictionary
-        data = {attr[0]: attr[1] for attr in [field.split('=') for field in plaintext[2].split('&')]}
+        rawdata = plaintext[2]
+        
+        # Reconstruct the full URL for urlparse
+        full_url = url = "http://%s%s?%s" % (plaintext[0], uri, rawdata)
+        data = urlparse.parse_qs(full_url)
 
         return tuple.__new__(_cls, (host, uri, data))
 
@@ -160,6 +164,9 @@ class Product(object):
         self.description = description
         self.vendor = vendor
         self.image = image
+        
+    def __hash__(self):
+        return hash(self.__repr__())    
     
     def __getitem__(self, key):
         if hasattr(self, key):

@@ -12,6 +12,7 @@ import json
 import itertools
 import re
 import productinfo
+import urlparse
 
 try:
     import cPickle as pickle
@@ -31,6 +32,7 @@ class ServiceMap(object):
         self._init_product()
     
     def _init_product(self):
+        # Product lookup APIs. Currently supports eBay and Amazon.
         self.ebayAPI = productinfo.Ebay("CMUHCII7a-a7be-484f-8f81-d600d641438")    
         self.amazonAPI = productinfo.Amazon("includes/amazon-api.dat")
         
@@ -47,7 +49,7 @@ class ServiceMap(object):
         # And create a new dictionary for name --> domain lookup.        
         self.service_names = {v:k for k, v in self.domainmap.items()}    
         
-        # And open the TLD validation list    
+        # And open the TLD validation list (for email validation)
         with open("includes/processed-psl.dat") as f: self.psl = pickle.load(f)
 
     def fromdomain(self, domain, hits=0):
@@ -102,7 +104,9 @@ class LeakResults(object):
         # Analysis pipeline 
         self.analyses = [self._emailvalidation, self._domainparsing, 
                     self._countservices, self._domainstoservices, 
-                    self._processhttpinfo, self._combine, self._processcookies]
+                    self._processhttpinfo, self._combine, 
+                    self._processcookies, 
+                    self._processformdata]
                     
     def __getitem__(self, key):
         try:
@@ -110,7 +114,7 @@ class LeakResults(object):
         except KeyError:
             return self.leaks[key]    
     
-    def finditem(l, item):
+    def finditem(self, l, item):
         return l[l.index(item)]
             
     def pipeline(func):
@@ -163,24 +167,35 @@ class LeakResults(object):
             
     @pipeline
     def _processhttpinfo(self):
+        """Extract unsecure HTTP requests into parsed (domain, uri) tuples."""
         self.temp['http-queries'] = [(tldextract.extract(data[0]), data[1]) for data in self.leaks['http-queries']]
 
     @pipeline
     def _processformdata(self):
+        """Move form data into a more structured format."""
         for k in self.available_keys('forms'):
             self.temp[k] = [Form(data) for data in self.leaks[k]]
             
+        # Append to domain/service    
+        for form in self.temp['formdata']:
+            domain = str(form.host.registered_domain)
+            if domain in self.leaks['combined']:
+                item = self.finditem(self.leaks['combined'], domain)
+                if not hasattr(item, "formdata"): item.formdata = []
+                item.formdata.append(form)
+            
     @pipeline
     def _combine(self):
-        # Collapse with common data types
+        """Combine all the separate instances of domains and services into one condensed list."""
         self.leaks['combined'] = list(set(reduce(list.__add__, 
                                  [self.processed['service-'+k] for k in self.available_keys('domains')
                                  if 'private-browsing' not in k] )))
                    
     @pipeline
     def _processcookies(self):
-        # future: extract info per service (i.e. United flight searches)
+        """Extract cookies into their own data type and then process relevant ones."""
         
+        # future: extract info per service (i.e. United flight searches)
         self.temp['cookies'] = []
         # Extract cookies into key-value format
         for domain, cdata in self.leaks['cookies']:
@@ -206,69 +221,79 @@ class LeakResults(object):
                     item.prev_visit = prev
                     
     @pipeline                
-    def _grabqueries(self):
+    def _processqueries(self):
+        """Extract searches/queries from request strings and then process queries to get
+        data on known sites (e.g. Amazon)."""
         self.temp['queries'] = []
         self.temp['queries-by-site'] = {}
         
-        # Regexes
+        # Regexes for known sites
         amazon_asin = re.compile(r"(/|a=|dp|gp/product)([a-zA-Z0-9]{10})") 
         ebay_item = re.compile(r'/itm/(.+)/([0-9]{12})')
         wiki_page = re.compile("/wiki/(?<!Special:)(.+)$")
         
+        # Exclude some domains (like autocomplete servers)
         excluded = ['fls-na', 'fls', 'files', 'img', 'images']
-        filter_keywords = ["q=", "kwd=", "search="]
+        filter_keywords = ["q", "kwd", "search"]
         site_matching = { 
             "wikipedia.org": wiki_page,
             "ebay.com": ebay_item,
             "amazon.com": amazon_asin 
         }
         
-        interesting_queries = [(domain, uri) for domain, uri in self.leaks['http-queries'] 
-                                if any(key in uri for key in filter_keywords)]
-        interesting_sites = [(domain, uri) for domain, uri in self.leaks['http-queries'] 
-                                if any(key == domain.registered_domain for key in site_matching.keys())]
-
+        # Build list of queries to further process
+        interesting_queries = []
+        for domain, uri in self.leaks['http-queries'] :
+            qs = urlparse.parse_qs(uri)
+            if any(key in qs for key in filter_keywords):
+                interesting_queries.append((domain, qs))
+                                
         # Standalone findings: for example, a search term
-        for domain, uri in interesting_queries:
+        # (google.com/search?q=blah)
+        for domain, qs in interesting_queries:
             # Find the appropriate query string to look for and extract term
-            queryvar = [var for var in filter_keywords if var in uri][0]
-            searchterm = re.compile("%s([^&]*)" % queryvar ).findall(uri)
+            queryvar = [var for var in filter_keywords if var in qs][0]
+            searchterm = qs[queryvar]
+            if type(searchterm) is list: searchterm = searchterm[0]
             
             # If there's already recorded information about this domain/service
             # then add the search term to its information
             if domain.registered_domain in self.leaks['combined']:
                 item = self.finditem(self.leaks['combined'], domain.registered_domain)
-                if not hasattr(item, "queries"): item.queries = []
-                item.queries.append(searchterm)
+                if not hasattr(item, "queries"): item.queries = set()
+                item.queries.add(searchterm)
                 
             self.temp['queries'].append( (domain, searchterm) )
 
-        # Actionable findings: for example, get the product info from an Amazon ASIN
+        # Process further: for example, get the product info from an Amazon ASIN
+        interesting_sites = [(domain, uri) for domain, uri in self.leaks['http-queries'] 
+                                if any(key == domain.registered_domain for key in site_matching.keys())]
+
         for domain, uri in interesting_sites:
             # Grab the appropriate regex term extractor 
             matches = re.compile(site_matching[domain.registered_domain]).findall(uri)
             
-            if matches and domain.subdomain not in excluded:
+            if matches and (domain.subdomain not in excluded and domain.domain not in excluded):
                 # Handle things by service
                 if domain.registered_domain == 'amazon.com': # lookup by ASIN
                     product = self.map.amazonAPI.asinlookup(matches[0][1])
                     amazon = self.finditem(self.leaks['combined'], "Amazon")
-                    if not hasattr(amazon, "products"): amazon.products = []
-                    amazon.products.append(product)
+                    if not hasattr(amazon, "products"): amazon.products = set()
+                    amazon.products.add(product)
                 elif domain.registered_domain == 'ebay.com': # lookup by ebay ID 
                     product = self.map.ebayAPI.idlookup(matches[0][1])
                     ebay = self.finditem(self.leaks['combined'], "eBay")
-                    if not hasattr(ebay, "queries"): ebay.products = []
-                    ebay.products.append(product)
+                    if not hasattr(ebay, "queries"): ebay.products = set()
+                    ebay.products.add(product)
                 elif domain.registered_domain == 'wikipedia.org':
                     article = matches[0][1]
                     wiki = self.finditem(self.leaks['combined'], "Wikipedia")
-                    if not hasattr(wiki, "queries"): wiki.queries = []
-                    wiki.queries.append(article)
+                    if not hasattr(wiki, "queries"): wiki.queries = set()
+                    wiki.queries.add(article)
                 else:    
                     item = self.finditem(self.leaks['combined'], domain.registered_domain)
-                    if not hasattr(item, "queries"): item.queries = []
-                    item.queries.append(matches[0])
+                    if not hasattr(item, "queries"): item.queries = set
+                    item.queries.add(matches[0])
                     
                 if domain.registered_domain not in self.temp['queries-by-site']:
                     self.temp['queries-by-site'][domain.registered_domain] = []
