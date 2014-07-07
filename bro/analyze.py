@@ -14,6 +14,7 @@ import itertools
 import re
 import productinfo
 import urlparse
+import logging
 
 try:
     import cPickle as pickle
@@ -31,25 +32,35 @@ class ServiceMap(object):
         * Domain name to service
         * Product lookup from product ID
         * Tracking website lookup
+        * AlchemyAPI categorizer
     
     """
+    #### API KEYS ########
     EBAY_API_KEY = "CMUHCII7a-a7be-484f-8f81-d600d641438"
     AMAZON_API_KEY = "includes/amazon-api.dat" # file location
     TRACKER_LIST = "includes/trackers.dat"
+    ALCHEMY_API_KEY = "48980ef6932f3393a5a3059021e9645857cc3c12" # allows 1k hits per day
+    #### END API KEYS ####
     
     
     def __init__(self):
+        self.logger = logging.getLogger("ServiceMap")
+        
         from serviceList import domainmap
         self.domainmap = domainmap        
         self.process_map()
         self.init_product()
         self.process_trackers()
-    
+        self.init_categorizer()
+        
     def init_product(self):
         # Product lookup APIs. Currently supports eBay and Amazon.
         self.ebayAPI = productinfo.Ebay(self.EBAY_API_KEY)    
         self.amazonAPI = productinfo.Amazon(self.AMAZON_API_KEY)
     
+    def init_categorizer(self):
+        self.alchemyAPI = alchemyapi.AlchemyAPI(self.ALCHEMY_API_KEY)
+        
     def process_trackers(self):
         with open(self.TRACKER_LIST, 'rb') as f: trackerlist = pickle.load(f)
         
@@ -96,7 +107,16 @@ class ServiceMap(object):
         
         # And open the TLD validation list (for email validation)
         with open("includes/processed-psl.dat") as f: self.psl = pickle.load(f)
-
+        
+    def categorize_url(self, query):
+        results = self.alchemyAPI.taxonomy("url", query)
+        if results['status'] == "OK":
+            taxonomy = results['taxonomy'][0]
+            self.logger.debug("CATEGORIZE: <%s> -- <%s>" % (query, taxonomy) )
+            return (taxonomy['label'], taxonomy['score'])
+        else:
+            self.logger.debug("CATEGORIZE: %s <%s>" % (results['status'], query) )
+            
     def fromdomain(self, domain, hits=0):
         """Returns a service given a stripped domain name, or a Domain if the mapping is nonexistent."""
         from serviceList import mapping
@@ -129,15 +149,15 @@ class ServiceMap(object):
 
 class LeakResults(object):
     """Holds the JSON export for processing (for now.)"""
-    
-    # For categorization; AlchemyAPI allows 1K hits/day
-    ALCHEMY_API_KEY = "48980ef6932f3393a5a3059021e9645857cc3c12"
-    
+        
     def __init__(self, outfile):
+        self.logger = logging.getLogger('LeakResults')                
+        
+        
         with open(outfile) as f: self.leaks = json.load(f)
         self.processed = {}
         self.map = ServiceMap()
-                        
+        
         # A list of trace outputs relevant to different areas of interest.
         self.relevant_keys = {
             'domains': ['visited-subdomains', 'private-browsing','https-servers'],
@@ -156,7 +176,7 @@ class LeakResults(object):
                     self._countservices, self._domainstoservices, 
                     self._processhttpinfo, self._combine, 
                     self._processcookies, self._processformdata, 
-                    self._processqueries
+                    self._processqueries, self._categorize_trackers
         ]
                     
     def __getitem__(self, key):
@@ -352,7 +372,8 @@ class LeakResults(object):
                 
             # Also a chance to integrate page titles?
 
-    def _check_trackers(self):
+    @pipeline
+    def _categorize_trackers(self):
         # All present tracking services that are a simple domain match
         presentdomains = set(reduce(list.__add__, [d.domains for d in self.leaks['combined']]))
         domainmatches = list(self.map.trackers['domain-rules'] & presentdomains)
@@ -369,9 +390,17 @@ class LeakResults(object):
                     # Set flag
                     self.finditem(self.leaks['combined'], domain).tracking = True
 
-
+    # @pipeline
+    def _categorize(self):
+        # Try to categorize based on base domain
+        needscategory = {tldextract.extract(svc.name).registered_domain:svc 
+                        for svc in self.leaks['combined'] if svc.category is None}
+                        
+        for domain, service in needscategory.items():
+            cat = self.map.categorize_url(domain)
+            self.finditem(domain).category = cat
+    
     def _prep_export(self):
-
         # Dict to store data for export           
         self.info = {
             'services': [svc for svc in combined if type(svc) == Service],
@@ -383,16 +412,6 @@ class LeakResults(object):
             'other': {k:self.leaks[k] for k in self.available_keys('other')}
 
         }
-
-        
-        
-    # @pipeline
-    # def _categorize(self):
-    #     self.api = alchemyapi.AlchemyAPI(self.ALCHEMY_API_KEY)
-    #     categorize_url = lambda query: self.api.taxonomy("url", query)
-    #     results = [
-    #         categorize_url(url) for url in []
-    #     ]
         
     def available_keys(self, category):
         """Return the overlap between the available keys (data you have) and all relevant
