@@ -45,15 +45,18 @@ class UserData(object):
 class Service(object):
     """Class for grouping extracted domains and other elements under one service-related umbrella.
     
-    A service has a name at a bare minimum, has a hit counter, and can be extended to contain any other
+    A service has a name at a bare minimum, has a hit counter, and can be etended to contain any other
     data that would be relevant (e.g., usernames and passwords).
     """
-    def __init__(self, name, description=None, category=None, domains="", hits=0):
+    def __init__(self, name, description=None, category=None, domains=None, hits=0):
         self.name = name
         self.description = description
         self.category = category      
         self.hits = hits
-        self.domains = domains
+        if domains: 
+            self.domains = [domains]
+        else:
+            self.domains = []    
     
     def __repr__(self):
         return "Service(%s)" % ", ".join(["%s=%s"%(k,v) for k, v in self.__dict__.items()])
@@ -73,15 +76,23 @@ class Service(object):
             else:
                 return self.name == other.name and self.category == other.category
         elif type(other) in [str, unicode]:
-            return (other == self.name) or (other == self.domains.registered_domain) or (other == self.domains.subdomain+self.domains.registered_domain)
+            samename = (other == self.name)
+            samedomain = other in [d.registered_domain for d in self.domains]
+            samefulldomain = other in [d.subdomain + d.registered_domain for d in self.domains]
+            return samename or samedomain or samefulldomain
         elif type(other) is Domain:
             if other.domains:
-                return other.domains.registered_domain == self.domains.registered_domain
+                overlap = set([d.registered_domain for d in other.domains]) \
+                        & set([d.registered_domain for d in self.domains])
+                if overlap: 
+                    return True
+                else:
+                    return False    
             else:
                 return False    
         elif type(other) is tldextract.ExtractResult:
             if self.domains:
-                return self.domains.registered_domain == other.registered_domain
+                return  other.registered_domain in [d.registered_domain for d in self.domains]
             else:
                 return False    
         
@@ -90,11 +101,15 @@ class Service(object):
         if self == other:
             attrs = copy.copy(self.__dict__)
             attrs['hits'] = self.hits + other.hits
+            attrs['domains'] = list(self.domains) + list(other.domains)
             newsvc = Service(self.name)
             newsvc.__dict__ = attrs
             return newsvc
         else:
             raise TypeError('You cannot combine two Service instances that are for different services.')          
+    
+    def add_domain(self, domain):
+        self.domains.append(domain)        
 
 class Domain(Service):
     """A Domain is a Service without any identifying info. Kind of a placeholder right now."""

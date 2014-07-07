@@ -66,12 +66,16 @@ class ServiceMap(object):
                 name = name[1:]
         if name in mapping:
             category = mapping[name]['category']
-            return Service(name, category=category, hits=hits, domains=domain) 
+            svc = Service(name, category=category, hits=hits) 
+            svc.add_domain(domain)
+            return svc
         else:
-            return Domain(name, domains=domain, hits=hits)
+            dom = Domain(name, hits=hits)
+            dom.add_domain(domain)
+            return dom
     
     def fromname(self, service_name):
-        """Returns a tuple of service domains given a name, or False if nonexistent."""
+        """Returns a tuple of service  given a name, or False if nonexistent."""
         try: 
             return self.service_names[service_name]
         except KeyError:
