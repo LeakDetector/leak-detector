@@ -5,6 +5,7 @@ from alchemyapi import alchemyapi
 from cookies import Cookies
 from google_analytics_cookie import *
 from BeautifulSoup import BeautifulSoup 
+from includes.generate_trackerdata import TPLRule
 
 import inspect
 import tldextract
@@ -23,18 +24,62 @@ from userdata import *
 
         
 class ServiceMap(object):
-    """Allows you to map domain names to service names."""
-             
+    """Container for lookup and processing functions that relate domains, services, etc. to
+    relevant information.
+    
+    Currently:
+        * Domain name to service
+        * Product lookup from product ID
+        * Tracking website lookup
+    
+    """
+    EBAY_API_KEY = "CMUHCII7a-a7be-484f-8f81-d600d641438"
+    AMAZON_API_KEY = "includes/amazon-api.dat" # file location
+    TRACKER_LIST = "includes/trackers.dat"
+    
+    
     def __init__(self):
         from serviceList import domainmap
         self.domainmap = domainmap        
         self.process_map()
-        self._init_product()
+        self.init_product()
+        self.process_trackers()
     
-    def _init_product(self):
+    def init_product(self):
         # Product lookup APIs. Currently supports eBay and Amazon.
-        self.ebayAPI = productinfo.Ebay("CMUHCII7a-a7be-484f-8f81-d600d641438")    
-        self.amazonAPI = productinfo.Amazon("includes/amazon-api.dat")
+        self.ebayAPI = productinfo.Ebay(self.EBAY_API_KEY)    
+        self.amazonAPI = productinfo.Amazon(self.AMAZON_API_KEY)
+    
+    def process_trackers(self):
+        with open(self.TRACKER_LIST, 'rb') as f: trackerlist = pickle.load(f)
+        
+        # Create a set of domains that are dedicated to known trackers
+        # (e.g., google-analytics.com)
+        domainlist = set(tldextract.extract(d.domain) for d in 
+                        [t for t in trackerlist if t.substring is None])
+                        
+        # Create a list of (domain, regex) tuples for known trackers that are
+        # indicated by certain query strings regardless of domain (e.g. /ga.js
+        # for google analytics javascript)
+        substringlist = []
+        
+        for t in trackerlist:
+            domain = tldextract.extract(t.domain) if t.domain else None
+            if t.substring:
+                substring = t.substring.replace("?", "\?").replace("(", "\(").replace(")", "\)")
+                if "*" in t.substring: 
+                    regex = re.compile(substring.replace("*", "(.*)"))
+                else:
+                    regex = re.compile(substring)    
+                substringlist.append( (domain, regex) )
+                
+                
+        self.trackers = {
+            'domain-rules': domainlist,
+            'all': trackerlist,
+            'substring-rules': substringlist
+            
+        }                
         
     def process_map(self):
         self.SERVICE_MAP = {}
@@ -106,11 +151,13 @@ class LeakResults(object):
         }
         
         # Analysis pipeline 
-        self.analyses = [self._emailvalidation, self._domainparsing, 
+        self.analyses = [
+                    self._emailvalidation, self._domainparsing, 
                     self._countservices, self._domainstoservices, 
                     self._processhttpinfo, self._combine, 
-                    self._processcookies, 
-                    self._processformdata]
+                    self._processcookies, self._processformdata, 
+                    self._processqueries
+        ]
                     
     def __getitem__(self, key):
         try:
@@ -247,7 +294,7 @@ class LeakResults(object):
         
         # Build list of queries to further process
         interesting_queries = []
-        for domain, uri in self.leaks['http-queries'] :
+        for domain, uri in self.processed['http-queries']:
             qs = urlparse.parse_qs(uri)
             if any(key in qs for key in filter_keywords):
                 interesting_queries.append((domain, qs))
@@ -270,7 +317,7 @@ class LeakResults(object):
             self.temp['queries'].append( (domain, searchterm) )
 
         # Process further: for example, get the product info from an Amazon ASIN
-        interesting_sites = [(domain, uri) for domain, uri in self.leaks['http-queries'] 
+        interesting_sites = [(domain, uri) for domain, uri in self.processed['http-queries'] 
                                 if any(key == domain.registered_domain for key in site_matching.keys())]
 
         for domain, uri in interesting_sites:
@@ -304,6 +351,24 @@ class LeakResults(object):
                 self.temp['queries-by-site'][domain.registered_domain].append( (domain, matches) )
                 
             # Also a chance to integrate page titles?
+
+    def _check_trackers(self):
+        # All present tracking services that are a simple domain match
+        presentdomains = set(reduce(list.__add__, [d.domains for d in self.leaks['combined']]))
+        domainmatches = list(self.map.trackers['domain-rules'] & presentdomains)
+        for domain in domainmatches:
+            # Set flag
+            self.finditem(self.leaks['combined'], domain).tracking = True
+
+        # If any requests match the substring rules
+        for trackerdomain, regex in self.map.trackers['substring-rules']:
+            for domain, uri in self.processed['http-queries']:
+                domain_and_uri_match = ( trackerdomain and trackerdomain == domain and regex.findall(uri) )
+                uri_match = (not trackerdomain and regex.findall(uri))
+                if domain_and_uri_match or uri_match:
+                    # Set flag
+                    self.finditem(self.leaks['combined'], domain).tracking = True
+
 
     def _prep_export(self):
 
