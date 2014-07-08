@@ -38,10 +38,13 @@ class ServiceMap(object):
     #### API KEYS ########
     EBAY_API_KEY = "CMUHCII7a-a7be-484f-8f81-d600d641438"
     AMAZON_API_KEY = "includes/amazon-api.dat" # file location
-    TRACKER_LIST = "includes/trackers.dat"
     ALCHEMY_API_KEY = "48980ef6932f3393a5a3059021e9645857cc3c12" # allows 1k hits per day
     #### END API KEYS ####
     
+    #### FILE LOCATIONS #####
+    TRACKER_LIST = "includes/trackers.dat"
+    TOP500_LIST = "includes/top500-sites.dat"
+    #### END FILE LOCATIONS #
     
     def __init__(self):
         self.logger = logging.getLogger("ServiceMap")
@@ -59,6 +62,7 @@ class ServiceMap(object):
         self.amazonAPI = productinfo.Amazon(self.AMAZON_API_KEY)
     
     def init_categorizer(self):
+        with open(self.TOP500_LIST) as f: self.top500 = pickle.load(f)
         self.alchemyAPI = alchemyapi.AlchemyAPI(self.ALCHEMY_API_KEY)
         
     def process_trackers(self):
@@ -109,12 +113,19 @@ class ServiceMap(object):
         with open("includes/processed-psl.dat") as f: self.psl = pickle.load(f)
         
     def categorize_url(self, query):
+        self.logger.debug("CATEGORIZE: trying to categorize %s" % query)
         results = self.alchemyAPI.taxonomy("url", query)
-        if results['status'] == "OK":
-            taxonomy = results['taxonomy'][0]
-            self.logger.debug("CATEGORIZE: <%s> -- <%s>" % (query, taxonomy) )
-            return (taxonomy['label'], taxonomy['score'])
+        status = results['status']
+        if status == "OK":
+            taxonomy = results['taxonomy']
+            if taxonomy:
+                taxonomy = taxonomy[0]
+                self.logger.debug("CATEGORIZE: <%s> -- <%s>" % (query, taxonomy) )
+                return (taxonomy['label'], taxonomy['score'])
+            else:
+                return ("Other", 1.0)    
         else:
+            self.logger.debug("CATEGORIZE: %s - %s - %s" % (status, query, results['statusInfo']) )
             self.logger.debug("CATEGORIZE: %s <%s>" % (results['status'], query) )
             
     def fromdomain(self, domain, hits=0):
@@ -391,14 +402,26 @@ class LeakResults(object):
                     self.finditem(self.leaks['combined'], domain).tracking = True
 
     # @pipeline
-    def _categorize(self):
+    def _categorize_existing(self):
+        available = list( 
+                    set(tldextract.extract(svc.name).registered_domain for svc in self.leaks['combined']) \
+                    & set(self.map.top500.keys()) )
+        for sitename in available:
+            self.finditem(self.leaks['combined'], sitename).category = " > ".join(self.map.top500[sitename])
+                        
+
+    # @pipeline
+    def _categorize_lookup(self):
         # Try to categorize based on base domain
         needscategory = {tldextract.extract(svc.name).registered_domain:svc 
                         for svc in self.leaks['combined'] if svc.category is None}
+        n = len(needscategory.keys())                
+        
+        self.logger.debug( "%s items need categorizing, which will probably take around %s seconds." % (n, .75*n) )
                         
         for domain, service in needscategory.items():
             cat = self.map.categorize_url(domain)
-            self.finditem(domain).category = cat
+            self.finditem(self.leaks['combined'], domain).category = cat
     
     def _prep_export(self):
         # Dict to store data for export           
