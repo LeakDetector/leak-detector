@@ -5,7 +5,6 @@ from alchemyapi import alchemyapi
 from cookies import Cookies
 from google_analytics_cookie import *
 from BeautifulSoup import BeautifulSoup 
-from includes.generate_trackerdata import TPLRule
 
 import inspect
 import tldextract
@@ -42,7 +41,7 @@ class ServiceMap(object):
     #### END API KEYS ####
     
     #### FILE LOCATIONS #####
-    TRACKER_LIST = "includes/site-data/trackers.dat"
+    TRACKER_LIST = "includes/site-data/tracker-rules.dat"
     TOP500_LIST = "includes/site-data/top500-sites.dat"
     #### END FILE LOCATIONS #
     
@@ -66,36 +65,8 @@ class ServiceMap(object):
         self.alchemyAPI = alchemyapi.AlchemyAPI(self.ALCHEMY_API_KEY)
         
     def process_trackers(self):
-        with open(self.TRACKER_LIST, 'rb') as f: trackerlist = pickle.load(f)
-        
-        # Create a set of domains that are dedicated to known trackers
-        # (e.g., google-analytics.com)
-        domainlist = set(tldextract.extract(d.domain) for d in 
-                        [t for t in trackerlist if t.substring is None])
-                        
-        # Create a list of (domain, regex) tuples for known trackers that are
-        # indicated by certain query strings regardless of domain (e.g. /ga.js
-        # for google analytics javascript)
-        substringlist = []
-        
-        for t in trackerlist:
-            domain = tldextract.extract(t.domain) if t.domain else None
-            if t.substring:
-                substring = t.substring.replace("?", "\?").replace("(", "\(").replace(")", "\)")
-                if "*" in t.substring: 
-                    regex = re.compile(substring.replace("*", "(.*)"))
-                else:
-                    regex = re.compile(substring)    
-                substringlist.append( (domain, regex) )
-                
-                
-        self.trackers = {
-            'domain-rules': domainlist,
-            'all': trackerlist,
-            'substring-rules': substringlist
-            
-        }                
-        
+        with open(self.TRACKER_LIST, 'rb') as f: self.trackers = pickle.load(f)
+    
     def process_map(self):
         self.SERVICE_MAP = {}
         self.service_names = {}
