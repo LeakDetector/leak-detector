@@ -42,8 +42,8 @@ class ServiceMap(object):
     #### END API KEYS ####
     
     #### FILE LOCATIONS #####
-    TRACKER_LIST = "includes/trackers.dat"
-    TOP500_LIST = "includes/top500-sites.dat"
+    TRACKER_LIST = "includes/site-data/trackers.dat"
+    TOP500_LIST = "includes/site-data/top500-sites.dat"
     #### END FILE LOCATIONS #
     
     def __init__(self):
