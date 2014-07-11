@@ -1,28 +1,31 @@
+# Builtins
 from collections import Counter, namedtuple
-from utils import merge_dicts
 from functools import wraps
-from alchemyapi import alchemyapi
-from cookies import Cookies
-from google_analytics_cookie import *
-from BeautifulSoup import BeautifulSoup 
-
 import inspect
-import tldextract
 import json
 import itertools
 import re
-import productinfo
 import urlparse
 import logging
-
 try:
     import cPickle as pickle
 except ImportError:
     import pickle    
-    
-from userdata import *
 
-        
+# Third party
+from alchemyapi import alchemyapi
+from google_analytics_cookie import *
+from BeautifulSoup import BeautifulSoup 
+from sqlitedict import SqliteDict
+from cookies import Cookies
+import tldextract
+import requests
+
+# Leak detector specific
+from userdata import *
+from utils import merge_dicts
+import productinfo
+
 class ServiceMap(object):
     """Container for lookup and processing functions that relate domains, services, etc. to
     relevant information.
@@ -43,6 +46,12 @@ class ServiceMap(object):
     #### FILE LOCATIONS #####
     TRACKER_LIST = "includes/site-data/tracker-rules.dat"
     TOP500_LIST = "includes/site-data/top500-sites.dat"
+    CDN_LIST = "includes/site-data/cdns.dat"
+    SITE_CATEGORIES = {
+        'main': 'includes/site-data/dmoz.db',
+        'regional-us': 'includes/site-data/regional_dmoz.db',
+        'world': 'includes/site-data/world_dmoz.db'
+    }
     #### END FILE LOCATIONS #
     
     def __init__(self):
@@ -61,8 +70,18 @@ class ServiceMap(object):
         self.amazonAPI = productinfo.Amazon(self.AMAZON_API_KEY)
     
     def init_categorizer(self):
+        # Alexa top 500 sites 
         with open(self.TOP500_LIST) as f: self.top500 = pickle.load(f)
+        
+        # AlchemyAPI natural language processing API
         self.alchemyAPI = alchemyapi.AlchemyAPI(self.ALCHEMY_API_KEY)
+        
+        # Open web directory data
+        self.dmoz = SqliteDict(self.SITE_CATEGORIES['main'])
+        self.regional_dmoz = SqliteDict(self.SITE_CATEGORIES['regional-us'])
+        self.world_dmoz = SqliteDict(self.SITE_CATEGORIES['world'])
+        # List of CDN domains
+        with open(self.CDN_LIST) as f: self.cdns = pickle.load(f)
         
     def process_trackers(self):
         with open(self.TRACKER_LIST, 'rb') as f: self.trackers = pickle.load(f)
@@ -80,7 +99,7 @@ class ServiceMap(object):
         # And create a new dictionary for name --> domain lookup.        
         self.service_names = {v:k for k, v in self.domainmap.items()}    
         
-        # And open the TLD validation list (for email validation)
+        # And open the TLD validation list (for email validation):
         with open("includes/processed-psl.dat") as f: self.psl = pickle.load(f)
         
     def categorize_url(self, query):
@@ -158,7 +177,9 @@ class LeakResults(object):
                     self._countservices, self._domainstoservices, 
                     self._processhttpinfo, self._combine, 
                     self._processcookies, self._processformdata, 
-                    self._processqueries, self._categorize_trackers
+                    self._processqueries, self._remove_duplicates,
+                    self._categorize_infrastructure,
+                    self._categorize_existing
         ]
                     
     def __getitem__(self, key):
@@ -167,8 +188,11 @@ class LeakResults(object):
         except KeyError:
             return self.leaks[key]    
     
-    def finditem(self, l, item):
-        return l[l.index(item)]
+    def finditem(self, l, item, domains=False):
+        if domains:
+            return [svc for svc in l if item in svc.domains[0]][0]
+        else:    
+            return l[l.index(item)]
             
     def pipeline(func):
         """Wrapper function for all the operations in the data processing pipeline.
@@ -188,12 +212,14 @@ class LeakResults(object):
     @pipeline
     def _emailvalidation(self):
         """Removes unhelpful email-like strings from the email list (e.g. 'icon@2xresolution.png')."""
+        self.logger.info("Processing email addresses.")
         for k in ['email']:
             self.temp[k] = [Email(addr) for addr in self.leaks[k] if Email(addr).host.suffix in self.map.psl]
 
     @pipeline
     def _domainparsing(self):
         """Parses all the domains into a (plaintext, ExtractResult) tuple."""
+        self.logger.info('Processing web activity logs (1/2).')
         for k in self.available_keys('domains'):
             self.temp[k] = [(domain, tldextract.extract(domain)) for domain in self.leaks[k]]
             
@@ -206,6 +232,8 @@ class LeakResults(object):
     @pipeline
     def _domainstoservices(self): 
         """Turns browsing history into a list of Services and aggregates into service/domain list.""" 
+        self.logger.info('Processing web activity logs (2/2).')
+        
         services_temp = {}
         for k in self.available_keys('domains'):
             # Turn raw domains into services
@@ -226,6 +254,8 @@ class LeakResults(object):
     @pipeline
     def _processformdata(self):
         """Move form data into a more structured format."""
+        self.logger.info('Processing form data.')
+        
         for k in self.available_keys('forms'):
             self.temp[k] = [Form(data) for data in self.leaks[k]]
             
@@ -240,13 +270,49 @@ class LeakResults(object):
     @pipeline
     def _combine(self):
         """Combine all the separate instances of domains and services into one condensed list."""
-        self.leaks['combined'] = list(set(reduce(list.__add__, 
+        self.logger.info('Processing domain data...')
+        # Combine duplicates
+        nodup = list(set(reduce(list.__add__, 
                                  [self.processed['service-'+k] for k in self.available_keys('domains')
                                  if 'private-browsing' not in k] )))
-                   
+                                 
+        # And combine subdomains                         
+        bydomain = sorted( [i for i in nodup if not type(i) is Service], 
+                            key=lambda s: s.domains[0].domain )
+        # Add all services by default
+        combined = [i for i in nodup if type(i) is Service]                    
+                            
+        for name, domains in itertools.groupby(bydomain, lambda s: s.domains[0].domain):
+            domains = list(domains)
+            if len(domains) > 1:
+                self.logger.debug("COMBINE_GROUP %s" % name)
+                # Collapse domain list
+                domainlist = reduce(list.__add__, [i.domains for i in domains])
+                # Add up hits
+                hits = sum([i.hits for i in domains])
+                # Find the service with the most info.
+                mostinfo = max(domains, key=lambda i: len(i.__dict__.keys()) ) 
+                # New name will be the most basic name
+                name = mostinfo.domains[0].registered_domain
+                # Combine all the separate subdomains under one base domain
+                basedomain = Domain(None)
+                calculated_keys = ['domains', 'hits', 'name']
+                basedomain_dict = dict( {'domains': domainlist, 'hits': hits, 'name': name},
+                                    **{k:v for k, v in mostinfo.__dict__.items() if k not in calculated_keys} )
+    
+                # Dict transplant
+                basedomain.__dict__ = basedomain_dict
+                combined.append(basedomain)
+            else:
+                # Just add the existing thing
+                self.logger.debug("COMBINE_ADD %s" % name)
+                combined.append(domains[0])    
+        
+        self.leaks['combined'] = combined           
     @pipeline
     def _processcookies(self):
         """Extract cookies into their own data type and then process relevant ones."""
+        self.logger.info('Processing cookie data.')
         
         # future: extract info per service (i.e. United flight searches)
         self.temp['cookies'] = []
@@ -277,8 +343,10 @@ class LeakResults(object):
     def _processqueries(self):
         """Extract searches/queries from request strings and then process queries to get
         data on known sites (e.g. Amazon)."""
-        self.temp['queries'] = []
-        self.temp['queries-by-site'] = {}
+        self.logger.info('Extracting search queries and product information.')
+        
+        # self.temp['queries'] = []
+        # self.temp['queries-by-site'] = {}
         
         # Regexes for known sites
         amazon_asin = re.compile(r"(/|a=|dp|gp/product)([a-zA-Z0-9]{10})") 
@@ -316,7 +384,7 @@ class LeakResults(object):
                 if not hasattr(item, "queries"): item.queries = set()
                 item.queries.add(searchterm)
                 
-            self.temp['queries'].append( (domain, searchterm) )
+#            self.temp['queries'].append( (domain, searchterm) )
 
         # Process further: for example, get the product info from an Amazon ASIN
         interesting_sites = [(domain, uri) for domain, uri in self.processed['http-queries'] 
@@ -327,7 +395,7 @@ class LeakResults(object):
             matches = re.compile(site_matching[domain.registered_domain]).findall(uri)
             
             if matches and (domain.subdomain not in excluded and domain.domain not in excluded):
-                # Handle things by service
+                # Handle things by service and tag relevant item
                 if domain.registered_domain == 'amazon.com': # lookup by ASIN
                     product = self.map.amazonAPI.asinlookup(matches[0][1])
                     amazon = self.finditem(self.leaks['combined'], "Amazon")
@@ -348,15 +416,17 @@ class LeakResults(object):
                     if not hasattr(item, "queries"): item.queries = set
                     item.queries.add(matches[0])
                     
-                if domain.registered_domain not in self.temp['queries-by-site']:
-                    self.temp['queries-by-site'][domain.registered_domain] = []
-                self.temp['queries-by-site'][domain.registered_domain].append( (domain, matches) )
+                # if domain.registered_domain not in self.temp['queries-by-site']:
+                #     self.temp['queries-by-site'][domain.registered_domain] = []
+                # self.temp['queries-by-site'][domain.registered_domain].append( (domain, matches) )
                 
             # Also a chance to integrate page titles?
 
     @pipeline
-    def _categorize_trackers(self):
+    def _categorize_infrastructure(self):
         # All present tracking services that are a simple domain match
+        self.logger.info('Processing information on tracking websites..')
+        
         presentdomains = set(reduce(list.__add__, [d.domains for d in self.leaks['combined']]))
         domainmatches = list(self.map.trackers['domain-rules'] & presentdomains)
         for domain in domainmatches:
@@ -371,19 +441,94 @@ class LeakResults(object):
                 if domain_and_uri_match or uri_match:
                     # Set flag
                     self.finditem(self.leaks['combined'], domain).tracking = True
+                    
+        # Categorize CDN domains and remove individual domains
+        present_cdns = list(set([d for d in self.map.cdns if d in self.leaks['combined']]))
+        for cdn in present_cdns:
+            name = self.map.cdns[cdn]
+            svc = Service(name=name, category=["Web", "Content Distribution Network"], domains=cdn)
+            self.leaks['combined'].append(svc)
+        for cdn in present_cdns: self.leaks['combined'].remove(cdn)
 
-    # @pipeline
+    @pipeline
     def _categorize_existing(self):
+        # first pass - top 500 sites from Alexa
+        self.logger.info('Categorizing web activity - pass 1/5 (top 500 sites).')
         available = list( 
-                    set(tldextract.extract(svc.name).registered_domain for svc in self.leaks['combined']) \
+                    set(tldextract.extract(svc.name).registered_domain for svc in self.leaks['combined'] if not svc.category) \
                     & set(self.map.top500.keys()) )
         for sitename in available:
-            self.finditem(self.leaks['combined'], sitename).category = " > ".join(self.map.top500[sitename])
-                        
+            self.finditem(self.leaks['combined'], sitename).category = self.map.top500[sitename]
+            
+        # second/third pass - DMOZ data  
+        # main database
+        self.logger.info('Categorizing web activity - pass 2/5 (DMOZ open web directory).')
+        for svc in self.leaks['combined']:
+            category = svc.category
+            domain = tldextract.extract(svc.name).registered_domain
+            try:
+                dmozinfo = self.map.dmoz[domain]
+                if not category:
+                    self.logger.debug('CATEGORIZE DMOZ %s [domain %s] --> %s' % (svc.name, domain, dmozinfo))
+                    svc.category = dmozinfo['category']
+                    svc.name = dmozinfo['name']
+            except:
+                # Doing "if domain in dmozinfo" would be better, but this is such a large
+                # database that takes more time than a try/except block to just catch errors
+                continue
+                
+        # world/regional sites database
+        self.logger.info('Categorizing web activity - pass 3/5 (DMOZ open web directory).')
+        for svc in self.leaks['combined']:
+            category = svc.category
+            domain = tldextract.extract(svc.name).registered_domain
+            try:
+                dmozinfo = self.map.world_dmoz[domain]
+                if not category:
+                    self.logger.debug('CATEGORIZE_DMOZ_WORLD %s --> %s' % (svc.name, dmozinfo))
+                    svc.category = dmozinfo['category']
+                    svc.name = dmozinfo['name']
+            except:
+                continue
+        
+        for svc in self.leaks['combined']:
+            category = svc.category
+            domain = tldextract.extract(svc.name).registered_domain
+            try:
+                dmozinfo = self.map.regional_dmoz[domain]
+                if not category:
+                    self.logger.debug('CATEGORIZE_DMOZ_WORLD %s --> %s' % (svc.name, dmozinfo))
+                    svc.category = dmozinfo['category']
+                    svc.name = dmozinfo['name']
+            except:
+                continue
+                
 
     # @pipeline
     def _categorize_lookup(self):
+        def extract_meta(url):
+            page = BeautifulSoup(requests.get("http://"+url).content)
+            tags = ['og:description', 'description', 'keywords', 'og:keywords']
+            for prop in tags:
+                content = page.find('meta', {'property': prop} )
+                if content:
+                    return (prop, content['content'])
+                    
+        needscategory = {tldextract.extract(svc.name).registered_domain:svc 
+                        for svc in self.leaks['combined'] if svc.category is None}
+        
+        self.logger.info('Categorizing web activity - pass 4/5 (webpage meta tags)')
+        for domain, service in needscategory.items():
+            cat = extract_meta(domain)
+            if not cat is None:
+                if 'keywords' in cat[0]:
+                    self.finditem(self.leaks['combined'], domain).category = cat
+                else:
+                    self.finditem(self.leaks['combined'], domain).description = cat
+                
+        # fifth pass - automatic categorization by alchemyAPI NLP service
         # Try to categorize based on base domain
+        self.logger.info('Categorizing web activity - pass 5/5 (AlchemyAPI natural language processing service).')
         needscategory = {tldextract.extract(svc.name).registered_domain:svc 
                         for svc in self.leaks['combined'] if svc.category is None}
         n = len(needscategory.keys())                
@@ -393,6 +538,23 @@ class LeakResults(object):
         for domain, service in needscategory.items():
             cat = self.map.categorize_url(domain)
             self.finditem(self.leaks['combined'], domain).category = cat
+        
+    # @pipeline        
+    def _remove_duplicates(self):
+        self.logger.info("Removing duplicates and combining...")        
+        
+        # Services with the same domain name but different subdomains/suffixes
+        # with the base domain already categorized 
+        # (e.g. google.com, google.com.hk, google.es, google.co.br...)
+        # redundant_cats = [i for i in self.leaks['combined'] if not i.category
+        #     and self.finditem(self.leaks['combined'], i.domains[0].domain, domains=True).category]
+        
+        # Remove irrelevant listings, DNS stuff
+        exclude_suffix = ['s3.amazonaws.com', 'googleapis.com', 'in-addr.arpa', '']
+        exclude = [i for i in self.leaks['combined'] if i.domains[0].suffix in exclude_suffix]
+        
+        for dup in exclude: self.leaks['combined'].remove(dup)
+        
     
     def _prep_export(self):
         # Dict to store data for export           
@@ -402,7 +564,6 @@ class LeakResults(object):
             'private-browsing': self.leaks['service-private-browsing'],
             'system': {k:self.leaks[k] for k in self.available_keys('system')},
             'personal-info': {k:self.leaks[k] for k in self.available_keys('personal-info')},
-            'queries-and-searches': [self.leaks['queries'], self.leaks['queries-by-site']],
             'other': {k:self.leaks[k] for k in self.available_keys('other')}
 
         }

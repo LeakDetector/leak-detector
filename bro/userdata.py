@@ -45,7 +45,7 @@ class UserData(object):
 class Service(object):
     """Class for grouping extracted domains and other elements under one service-related umbrella.
     
-    A service has a name at a bare minimum, has a hit counter, and can be etended to contain any other
+    A service has a name at a bare minimum, has a hit counter, and can be extended to contain any other
     data that would be relevant (e.g., usernames and passwords).
     """
     def __init__(self, name, description=None, category=None, domains=None, hits=0):
