@@ -13,12 +13,12 @@ except ImportError:
     import pickle    
 
 # Third party
-from alchemyapi import alchemyapi
-from google_analytics_cookie import *
+from includes.alchemyapi import alchemyapi
+from includes.google_analytics_cookie import *
+from includes.sqlitedict import SqliteDict
+from includes.cookies import Cookies
+import includes.tldextract as tldextract
 from BeautifulSoup import BeautifulSoup 
-from sqlitedict import SqliteDict
-from cookies import Cookies
-import tldextract
 import requests
 
 # Leak detector specific
@@ -70,7 +70,7 @@ class ServiceMap(object):
         self.amazonAPI = productinfo.Amazon(self.AMAZON_API_KEY)
     
     def init_categorizer(self):
-        # Alexa top 500 sites 
+        # Alexa top 500 sites
         with open(self.TOP500_LIST) as f: self.top500 = pickle.load(f)
         
         # AlchemyAPI natural language processing API
@@ -582,3 +582,6 @@ class LeakResults(object):
         self.leaks = merge_dicts(self.leaks, self.processed)
         
     pipeline = staticmethod(pipeline)    
+    
+if __name__ == '__main__':
+    raise NotImplementedError('Please run from a Python shell while under development.')    

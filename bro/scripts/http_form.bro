@@ -20,7 +20,7 @@ event bro_init()
 
 event http_entity_data(c: connection, is_orig: bool, length: count, data: string ){
     if ( is_orig && c$http$method == "POST" )
-		
+
 		Log::write( http_form::LOG, [$ts=network_time(),
 								  $host=c$http$host,
 								  $uri=c$http$uri,

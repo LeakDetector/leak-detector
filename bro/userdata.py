@@ -1,9 +1,10 @@
 import json
 import pprint
-import tldextract
 import urlparse
 from operator import itemgetter
 from collections import defaultdict
+
+import includes.tldextract as tldextract
 
 class UserData(object):
     def __init__(self, data={}):

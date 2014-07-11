@@ -5,8 +5,14 @@ import logging
 import sys
 import select
 import time
+import re
 from subprocess import Popen, PIPE, STDOUT
 from itertools import chain
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle   
+
 def init_temp_dir(tag):
     __master_temp = tempfile.gettempdir()
 
@@ -55,4 +61,12 @@ def check_both(args, shouldPrint=True, check=True):
     return out
     
 def merge_dicts(x, y):
+    """Merge two dictionaries based on key."""
     return dict(chain(x.iteritems(), y.iteritems()))
+
+class ExtractFormdata(object):
+    def __init__(self, regexes):
+        with open(regexes) as f: self.regexes = pickle.load(f)
+        
+    def extract(self, formdict):
+        pass

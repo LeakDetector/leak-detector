@@ -1,0 +1,6 @@
+includes/form-data-regex.dat
+============================
+This file is an adaptation of the regular expressions found here: https://chromium.googlesource.com/chromium/chromium/+/trunk/components/autofill/core/browser/autofill_regex_constants.cc.utf8
+// Copyright 2013 The Chromium Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
