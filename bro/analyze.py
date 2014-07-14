@@ -16,8 +16,9 @@ import includes.tldextract as tldextract
 import requests
 
 # Leak detector specific
+import config.custom
 from servicemapper import *
-from userdata import *
+from userdata.userdata import *
 from utils import merge_dicts
 
 logging.basicConfig(level=logging.DEBUG)

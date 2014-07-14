@@ -10,7 +10,7 @@ import subprocess
 import signal
 import glob
 
-from userdata import UserData
+from userdata.userdata import UserData
 import parsers
 
 

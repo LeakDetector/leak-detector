@@ -76,7 +76,7 @@ class Service(object):
                 return self.name == other.name
             else:
                 return self.name == other.name and self.category == other.category
-        elif type(other) in [str, unicode]:
+        elif basestring in type(other).mro():
             samename = (other == self.name)
             samedomain = other in [d.registered_domain for d in self.domains]
             samefulldomain = other in [d.subdomain + d.registered_domain for d in self.domains]

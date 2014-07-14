@@ -11,7 +11,7 @@ import includes.tldextract as tldextract
 import config.apis
 import config.files
 import productinfo
-from userdata import *
+from userdata.userdata import *
 
 class ServiceMap(object):
     """Container for lookup and processing functions that relate domains, services, etc. to
@@ -27,7 +27,7 @@ class ServiceMap(object):
     def __init__(self):
         self.logger = logging.getLogger("ServiceMap")
         
-        from servicelist import domainmap
+        from config.servicelist import domainmap
         self.domainmap = domainmap        
         self.process_map()
         self.init_product()
@@ -124,7 +124,7 @@ class ServiceMap(object):
     def fromdomain(self, domain, hits=0):
         """Returns a service given a stripped domain name, or a Domain if the mapping is nonexistent."""
         
-        from servicelist import mapping
+        from config.servicelist import mapping
         
         try:
             name = self.SERVICE_MAP[domain.domain]
