@@ -8,6 +8,7 @@ import time
 import re
 from subprocess import Popen, PIPE, STDOUT
 from itertools import chain
+from functools import partial
 try:
     import cPickle as pickle
 except ImportError:
@@ -69,4 +70,9 @@ class ExtractFormdata(object):
         with open(regexes) as f: self.regexes = pickle.load(f)
         
     def extract(self, formdict):
-        pass
+        extracted_info = {}
+        for datatype, datapoints in self.regexes.items():
+            extracted_info[datatype] = []
+            for datapoint, data_re in datapoints.items():
+                results = map(data_re.findall, [k.lower() for k in formdict.keys()] )
+                
