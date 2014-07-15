@@ -2,19 +2,13 @@ import os
 import shutil
 import tempfile
 import logging
-import sys
-import select
-import time
-import re
-from subprocess import Popen, PIPE, STDOUT
+
+from subprocess import Popen, PIPE, STDOUT, CalledProcessError
 from itertools import chain
-from functools import partial
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle   
+from collections import defaultdict
 
 def init_temp_dir(tag):
+    """Create a temporary directory called leakdetector-`tag`/."""
     __master_temp = tempfile.gettempdir()
 
     # If leakdetector-<tag> dir exists from a previous execution, delete it.
@@ -28,6 +22,7 @@ def init_temp_dir(tag):
         logging.getLogger(__name__).error('Error making temp directory: %s\n%s', tempdir, e)
 
 def get_temp_dir(tag):
+    """Grab the temp directory path and create one if it doesn't exist."""
     __master_temp = tempfile.gettempdir()
 
     tempdir = os.path.join(__master_temp, 'leakdetector-%s' % tag)
@@ -37,6 +32,7 @@ def get_temp_dir(tag):
     return tempdir
 
 def remove_temp_dir(tag):
+    """Remove the temp directory starting with leakdetector-."""
     __master_temp = tempfile.gettempdir()
 
     tempdir = os.path.join(__master_temp, 'leakdetector-%s' % tag)
@@ -47,6 +43,7 @@ def remove_temp_dir(tag):
         logging.getLogger(__name__).warning('Could not remove temp dir: %s\n%s', tempdir, e)
 
 def check_output(args, shouldPrint=True):
+    """Grab subprocess output."""
     return check_both(args, shouldPrint)[0]
 
 def check_both(args, shouldPrint=True, check=True):
@@ -56,23 +53,28 @@ def check_both(args, shouldPrint=True, check=True):
     out = (out,"")
     out = (out, rc)
     if check and rc is not 0:
-        #print "Error processes output: %s" % (out,)
-        raise Exception("subprocess.CalledProcessError: Command '%s'" \
-                            "returned non-zero exit status %s (%s)" % (args, rc, out[0]))
+        logging.getLogger(__name__).warning("Process error: %s" % out[0])
+        raise CalledProcessError(args, rc)
     return out
     
 def merge_dicts(x, y):
     """Merge two dictionaries based on key."""
     return dict(chain(x.iteritems(), y.iteritems()))
+    
+def class_register(cls):
+    """Class wrapper for registry."""
+    cls._analyses = defaultdict(list)
+    for methodname in dir(cls):
+        method = getattr(cls,methodname)
+        if hasattr(method,'_prop'):
+            cls._analyses[method._prop].append(method.__name__)
+    return cls
 
-class ExtractFormdata(object):
-    def __init__(self, regexes):
-        with open(regexes) as f: self.regexes = pickle.load(f)
-        
-    def extract(self, formdict):
-        extracted_info = {}
-        for datatype, datapoints in self.regexes.items():
-            extracted_info[datatype] = []
-            for datapoint, data_re in datapoints.items():
-                results = map(data_re.findall, [k.lower() for k in formdict.keys()] )
-                
+def register(order):
+    """Wrapper function to register analysis order."""
+    def wrapper(func):
+        if not ( type(order) is int and order >= -1 ):
+            raise TypeError("Invalid analysis order %s." % order)
+        func._prop = order
+        return func
+    return wrapper
