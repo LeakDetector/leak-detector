@@ -4,7 +4,9 @@ import urlparse
 from operator import itemgetter
 from collections import defaultdict
 
-import includes.tldextract as tldextract
+import tldextract
+from utils import merge_dicts 
+
 
 class UserData(object):
     def __init__(self, data={}):
@@ -20,7 +22,6 @@ class UserData(object):
                     self.data[k] += v
             else:
                 if type(v) is set: 
-                    #import pdb; pdb.set_trace()
                     self.data[k] = list(v)
                 else:    
                     self.data[k] = v
@@ -60,11 +61,14 @@ class Service(object):
             self.domains = []    
     
     def __repr__(self):
-        return "Service(%s)" % ", ".join(["%s=%s"%(k,v) for k, v in self.__dict__.items()])
+        return "Service <%s>" % self.__dict__
         
     def __str__(self):
-        return "Service --> %s" % self.__dict__
-    
+        _str = "<Service %s>" % self.name
+        for k, v in self.__dict__.items():
+            _str += ("\n\t %s = %s" % (k, v))
+        return _str        
+        
     def __hash__(self):
         return hash("%s%s%s"%(self.name, self.description, self.category))
         
@@ -100,14 +104,17 @@ class Service(object):
     def __add__(self, other):
         import copy
         if self == other:
-            attrs = copy.copy(self.__dict__)
+            attrs = merge_dicts(copy.deepcopy(self.__dict__), copy.deepcopy(other.__dict__))
+            if not type(self) is Service and type(other) is Service:
+                attrs['name'] = tldextract.extract(self.name).registered_domain
             attrs['hits'] = self.hits + other.hits
             attrs['domains'] = list(self.domains) + list(other.domains)
+            
             newsvc = Service(self.name)
             newsvc.__dict__ = attrs
             return newsvc
         else:
-            raise TypeError('You cannot combine two Service instances that are for different services.')          
+            raise TypeError('You cannot combine two Service instances that are for different services.')
     
     def add_domain(self, domain):
         self.domains.append(domain)        
@@ -118,7 +125,14 @@ class Domain(Service):
         super(Domain, self).__init__(name, domains=domains, hits=hits)
 
     def __repr__(self):
-        return "Domain(%s)" % ", ".join(["%s=%s"%(k,v) for k, v in self.__dict__.items()])
+        return "Domain <%s>" % self.__dict__
+        
+    def __str__(self):
+        _str = "<Domain %s>" % self.name
+        for k, v in self.__dict__.items():
+            _str += ("\n\t %s = %s" % (k, v))
+        return _str        
+
         
 class Email(tuple):
     """
