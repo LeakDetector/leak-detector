@@ -6,7 +6,7 @@ except ImportError:
 
 from includes.alchemyapi import alchemyapi
 from includes.sqlitedict import SqliteDict
-import includes.tldextract as tldextract
+import tldextract
 
 import config.apis
 import config.files
@@ -53,6 +53,7 @@ class ServiceMap(object):
         self.world_dmoz = SqliteDict(config.files.SITE_CATEGORIES['world'])
         
         # List of CDN domains
+        tldextract.ExtractResult = tldextract.tldextract.ExtractResult
         with open(config.files.CDN_LIST) as f: self.cdns = pickle.load(f)
         
         # Tracking/analytics websites

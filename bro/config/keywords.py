@@ -1,14 +1,3 @@
-# TODO: Turn Alexa top 500 into Service()
-# TODO: Grab HTML bodies from Bro and do keyword matching (or matching in bro regexes?)
-# 	Provide keyword --> generate valid bro regex entry
-# 					--> if type isn't just a plain keyword
-# 							--> fill in appropriate spots in regex with data
-# 					--> otherwise
-# 							--> create generic /(term)/ regex
-#	Generate table for bro script to import 
-# 	Hook onto both ingoing and outgoing
-# TODO: Document pipeline
-
 import re
 from collections import namedtuple
 

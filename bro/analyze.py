@@ -1,7 +1,7 @@
 # Builtins
 from collections import Counter, namedtuple
 from functools import wraps
-import json
+import simplejson as json
 import itertools
 import re
 import urlparse
@@ -12,7 +12,7 @@ from includes.google_analytics_cookie import *
 from includes.cookies import Cookies
 from BeautifulSoup import BeautifulSoup 
 
-import includes.tldextract as tldextract
+import tldextract
 import requests
 
 # Leak detector specific
@@ -22,10 +22,47 @@ from servicemapper import *
 from userdata.userdata import *
 from utils import merge_dicts, class_register, register
 
-logging.basicConfig(level=logging.DEBUG)
+def ResultsEncoder(o):
+    """
+    Helper function for json.dump() that provides the serializable form
+    of object `o` when passed.
+    
+    >>> svc = Service("example.com", description="An example website.", hits=4, domains=[tldextract.extract("example.com")])
+    >>> json.dumps(svc, default=ResultsEncoder)
+    {
+        "category": null,
+        "description": "An example website.",
+        "domains": [
+            [
+                {
+                    "domain": "example",
+                    "subdomain": "",
+                    "suffix": "com",
+                    "tld": "com"
+                }
+            ]
+        ],
+        "hits": 4,
+        "name": "example.com"
+    }
+    >>>
+    """
+    if type(o) in [Service, Domain, Product]:
+        return o.__dict__
+    elif type(o) is datetime:
+        return o.isoformat()   
+    else:
+        try:
+            iterable = iter(o)
+        except TypeError:
+            return json.JSONEncoder.default(self, o)    
+        else:
+            return list(iterable)        
+
 
 @class_register
 class LeakResults(object):
+    
     """
     Represents a network activity dump in JSON format outputted by `leakdetector.py`.
     Contains further processing functions. 
@@ -66,7 +103,9 @@ class LeakResults(object):
         self.finished = {}
         # Initialize container class for analysis utilities
         self.map = ServiceMap()
-                    
+        # State
+        self.analysis_finished = False
+        
     def __getitem__(self, key):
         """Try and return a processed item; if not, then the unprocessed one."""
         try:
@@ -76,6 +115,11 @@ class LeakResults(object):
                 return self.processed[key]
             except:
                 return self.leaks[key]    
+                
+    def available_keys(self, category):
+        """Return the overlap between the available keys (data you have) and all relevant
+        keys (data that you want)."""
+        return set(config.analysis.relevant_keys[category]) & set(self.leaks.keys())
             
     def analyze(self, again=False):
         """Runs all the analyses and then merges the newly analyzed data with the original data."""
@@ -122,6 +166,14 @@ class LeakResults(object):
         else:    
             return l[l.index(item)]
 
+    @register(-1) #always do first
+    @merge_processed
+    def _copy_unprocessed(self):
+        """Copy data that doesn't need further processing straight to the output."""
+        self.logger.info("Skipping data categories that don't need processing.")
+        for k in self.available_keys('_no_process'):
+            self.temp[k] = self.leaks[k]
+            
     @register(1)
     @merge_processed
     def _emailvalidation(self):
@@ -152,41 +204,30 @@ class LeakResults(object):
         self.logger.info('Processing web activity logs (2/2).')
         
         services_temp = {}
+        
         for k in self.available_keys('domains'):
             # Turn raw domains into services
             assert type(self.processed[k]) == Counter
-            services_temp[k] = [self.map.fromdomain(domain, hits=count) for domain, count in self.processed[k].items()]
+            services_temp[k] = list()
+            for domain, count in self.processed[k].items():
+                svc = self.map.fromdomain(domain, hits=count)
+                if 'https' in k: 
+                    svc.secure = True 
+                services_temp[k].append(svc)
 
         # Combine lists of services and duplicates
         for k in services_temp:
             sortedbyname = sorted(services_temp[k], key=lambda svc: svc.name)
             aggregated =  itertools.groupby(sortedbyname, lambda svc: svc.name)
             self.temp["service-"+k] = [reduce(Service.__add__, records) for name, records in aggregated]
-            
-    @register(5)
+                    
+    @register(4)
     @merge_processed
     def _processhttpinfo(self):
         """Extract unsecure HTTP requests into parsed (domain, uri) tuples."""
         self.temp['http-queries'] = [(tldextract.extract(data[0]), data[1]) for data in self.leaks['http-queries']]
 
     @register(5)
-    @merge_processed
-    def _processformdata(self):
-        """Move form data into a more structured format."""
-        self.logger.info('Processing form data.')
-        
-        for k in self.available_keys('forms'):
-            self.temp[k] = [Form(data) for data in self.leaks[k]]
-            
-        # Append to domain/service    
-        for form in self.temp['formdata']:
-            domain = str(form.host.registered_domain)
-            if domain in self.leaks['combined']:
-                item = self.finditem(self.leaks['combined'], domain)
-                if not hasattr(item, "formdata"): item.formdata = []
-                item.formdata.append(form)
-
-    @register(6)
     @merge_processed
     def _combine(self):
         """Combine all the separate instances of domains and services into one condensed list."""
@@ -229,8 +270,40 @@ class LeakResults(object):
                 self.logger.debug("COMBINE_ADD %s" % name)
                 combined.append(domains[0])    
         
+        # Tag private browsing
+        for k in self.available_keys('private-browsing'):
+            for site in self.processed[k]:
+                try:
+                    info = self.finditem(combined, site)
+                except:
+                    info = False    
+
+                if info:
+                    info.maybe_private_browsing = True
+                else:
+                    site.maybe_private_browsing = True
+                    combined.append(site    )
+        
         self.leaks['combined'] = combined           
         
+
+    @register(6)
+    @merge_processed
+    def _processformdata(self):
+        """Move form data into a more structured format."""
+        self.logger.info('Processing form data.')
+        
+        for k in self.available_keys('forms'):
+            self.temp[k] = [Form(data) for data in self.leaks[k]]
+            
+        # Append to domain/service    
+        for form in self.temp['formdata']:
+            domain = str(form.host.registered_domain)
+            if domain in self.leaks['combined']:
+                item = self.finditem(self.leaks['combined'], domain)
+                if not hasattr(item, "formdata"): item.formdata = []
+                item.formdata.append(form)
+
     @register(7)
     @merge_processed
     def _processcookies(self):
@@ -274,19 +347,10 @@ class LeakResults(object):
         # self.temp['queries'] = []
         # self.temp['queries-by-site'] = {}
         
-        # Regexes for known sites
-        amazon_asin = re.compile(r"(/|a=|dp|gp/product)([a-zA-Z0-9]{10})") 
-        ebay_item = re.compile(r'/itm/(.+)/([0-9]{12})')
-        wiki_page = re.compile("/wiki/(?<!Special:)(.+)$")
-        
         # Exclude some domains (like autocomplete servers)
-        excluded = ['fls-na', 'fls', 'files', 'img', 'images']
-        filter_keywords = ["q", "kwd", "search"]
-        site_matching = { 
-            "wikipedia.org": wiki_page,
-            "ebay.com": ebay_item,
-            "amazon.com": amazon_asin 
-        }
+        excluded = config.analysis.query_ignore_domains
+        filter_keywords = config.analysis.query_keywords
+        site_matching = config.analysis.sites_to_extractors 
         
         # Build list of queries to further process
         interesting_queries = []
@@ -330,11 +394,11 @@ class LeakResults(object):
                 elif domain.registered_domain == 'ebay.com': # lookup by ebay ID 
                     product = self.map.ebayAPI.idlookup(matches[0][1])
                     ebay = self.finditem(self.leaks['combined'], "eBay")
-                    if not hasattr(ebay, "queries"): ebay.products = set()
+                    if not hasattr(ebay, "products"): ebay.products = set()
                     ebay.products.add(product)
                 elif domain.registered_domain == 'wikipedia.org':
                     article = matches[0][1]
-                    wiki = self.finditem(self.leaks['combined'], "Wikipedia")
+                    wiki = self.finditem(self.leaks['combined'], "wikipedia.org")
                     if not hasattr(wiki, "queries"): wiki.queries = set()
                     wiki.queries.add(article)
                 else:    
@@ -404,7 +468,9 @@ class LeakResults(object):
             
 
     # @merge_processed
-    @register(10)
+    # @register(10)
+    # TODO: Find a better solution; passing on this right now because AlchemyAPI is incredibly
+    # inaccurate so far.
     def _categorize_lookup(self):
         """Categorize sites using AlchemyAPI."""
         
@@ -462,23 +528,54 @@ class LeakResults(object):
         
     
     def _prep_export(self):
-        # Dict to store data for export           
-        self.info = {
+        # Dict to store data for export     
+        combined = self.leaks['combined']      
+        self.export = {
             'services': [svc for svc in combined if type(svc) == Service],
-            'domains': [dom for dom in combined if type(svc) == Domain],
-            'private-browsing': self.leaks['service-private-browsing'],
+            'history': [dom for dom in combined if type(dom) == Domain],
+            'private-browsing': self.leaks['private-browsing'],
             'system': {k:self.leaks[k] for k in self.available_keys('system')},
             'personal-info': {k:self.leaks[k] for k in self.available_keys('personal-info')},
-            'other': {k:self.leaks[k] for k in self.available_keys('other')}
-
         }
-        
-    def available_keys(self, category):
-        """Return the overlap between the available keys (data you have) and all relevant
-        keys (data that you want)."""
-        return set(config.analysis.relevant_keys[category]) & set(self.leaks.keys())
-                    
+    
+    def export(self, outfile):
+        self.logger.info("Exporting processed results to %s." % outfile)
+        with open(outfile, 'w') as f:
+            json.dump(self.export, default=ResultsEncoder)
+                
     merge_processed = staticmethod(merge_processed)    
 
+def main(infile, outfile, verbose):
+    # Set logging verbosity
+    if verbose:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)    
+    
+    # Can we write to the file?    
+    try:
+        testfile = open(outfile, 'w') 
+        testfile.close()
+    except IOError, e:
+        raise IOError("There was a problem writing to the output file %s: %s" (outfile, e))
+        
+    # Instantiate class
+    leaks = LeakResults(infile)
+    # Analyze
+    leaks.analyze()
+    # Export
+    leaks.export(outfile)
+
 if __name__ == '__main__':
-    raise NotImplementedError('Please run from a Python shell while under development.')    
+    import argparse
+    
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,\
+                        description='Secondary analysis on exported Leak Detector traces.')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Print extra information for debugging.')
+    parser.add_argument('input', metavar='TRACE', type=str, help='Input trace file to process.')
+    parser.add_argument('output', metavar='OUTPUT', type=str, help='Output file for display (JSON).')
+    args = parser.parse_args()
+    
+    main(args.input, args.output, verbose)
+    
+                

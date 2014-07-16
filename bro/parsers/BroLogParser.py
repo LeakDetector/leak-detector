@@ -1,5 +1,5 @@
 from collections import defaultdict
-import includes.tldextract as tldextract
+import tldextract
 
 class BroLogParser(object):
     def __init__(self, log_path):

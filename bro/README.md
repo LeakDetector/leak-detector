@@ -35,7 +35,6 @@ Project structure
 		* https://publicsuffix.org
 		* publicsuffix.py - Library for handling PSL data
 	* sqlitedict.py - Database-backed Python dictionaries
-	* tldextract.py - URL parsing library
 * parsers/
 	* BroLogParser.py - base class for Bro log parsing
 	* *Parser.py - parser classes for individual Bro logs (see scripts/)
