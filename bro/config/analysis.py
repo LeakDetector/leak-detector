@@ -10,7 +10,7 @@ relevant_keys = {
     'misc': ['html-titles', 'http-queries'],
     'names': ['welcome', 'hi'],
     'private-browsing': ['private-browsing'],
-    '_no_process': ['http-usernames', 'http-passwords', 'os', 'browser']
+    '_no_process': ['http-usernames', 'http-passwords', 'os', 'browser', 'email-activity-generic', 'email-activity']
 }
 
 # settings for _processqueries
