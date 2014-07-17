@@ -2,14 +2,16 @@ import re
 # A list of trace outputs relevant to different areas of interest.
 relevant_keys = {
     'domains': ['visited-subdomains', 'private-browsing','https-servers'],
-    'personal-info': ['email', 'phone', 'http-usernames', 'http-passwords', 'email-activity'],
+    'personal-info': ['phone', 'http-usernames', 'http-passwords'],
     'services': ['visited-subdomains', 'private-browsing','https-servers', 'html-titles'],
-    'system': ['os', 'browser'],
+    'system': ['os', 'browser', 'location'],
     'forms': ['formdata'],
     'cookies': ['cookies'],
     'misc': ['html-titles', 'http-queries'],
     'names': ['welcome', 'hi'],
     'private-browsing': ['private-browsing'],
+    'email': [ 'email-activity', 'email-activity-generic', 'email'],
+    'files': ['files'],
     '_no_process': ['http-usernames', 'http-passwords', 'os', 'browser', 'email-activity-generic', 'email-activity']
 }
 

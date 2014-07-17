@@ -55,7 +55,7 @@ def ResultsEncoder(o):
         try:
             iterable = iter(o)
         except TypeError:
-            return json.JSONEncoder.default(self, o)    
+            return json.JSONEncoder().default(o)    
         else:
             return list(iterable)        
 
@@ -530,18 +530,22 @@ class LeakResults(object):
     def _prep_export(self):
         # Dict to store data for export     
         combined = self.leaks['combined']      
-        self.export = {
+        self._export = {
             'services': [svc for svc in combined if type(svc) == Service],
-            'history': [dom for dom in combined if type(dom) == Domain],
-            'private-browsing': self.leaks['private-browsing'],
+            'history': {'domains': [dom for dom in combined if type(dom) == Domain],
+                        'page-titles': self.leaks.get('html-titles')},
+            'private-browsing': self.leaks.get('private-browsing'),
+            'email': {k:self.leaks[k] for k in self.available_keys('email')},
+            'files': {k:self.leaks[k] for k in self.available_keys('files')},
             'system': {k:self.leaks[k] for k in self.available_keys('system')},
-            'personal-info': {k:self.leaks[k] for k in self.available_keys('personal-info')},
+            'personal-info': {k:self.leaks[k] for k in self.available_keys('personal-info')}
         }
     
     def export(self, outfile):
         self.logger.info("Exporting processed results to %s." % outfile)
+        self._prep_export()
         with open(outfile, 'w') as f:
-            json.dump(self.export, default=ResultsEncoder)
+            json.dump(self._export, f, default=ResultsEncoder)
                 
     merge_processed = staticmethod(merge_processed)    
 
@@ -576,6 +580,6 @@ if __name__ == '__main__':
     parser.add_argument('output', metavar='OUTPUT', type=str, help='Output file for display (JSON).')
     args = parser.parse_args()
     
-    main(args.input, args.output, verbose)
+    main(args.input, args.output, args.verbose)
     
                 
