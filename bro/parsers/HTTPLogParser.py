@@ -48,3 +48,6 @@ class HTTPLogParser(BroLogParser):
         if r['username'] != '-': self.data['http-usernames'].add(r['username'])
         if r['password'] != '-': self.data['http-passwords'].add(r['password'])
         
+        # ip address
+        if r['id.orig_h'] != '-': self.data['device-ip'] = r['id.orig_h']
+        

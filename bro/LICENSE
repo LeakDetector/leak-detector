@@ -69,6 +69,15 @@ includes/site-data/tracker-rules.dat
 	attributed as the source of the material. All relevant licence files
 	are included in the repository.
 	
+includes/email-providers.dat
+============================
+* From GitHub; https://gist.github.com/tbrianjones/5992856
+
+includes/GeoIP.dat
+==================
+* GeoLite2 data created by MaxMind, licensed under CC-BY-SA 3.0
+	* http://dev.maxmind.com/geoip/geoip2/geolite2/
+
 	
 
     

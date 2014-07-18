@@ -119,7 +119,7 @@ class LeakResults(object):
     def available_keys(self, category):
         """Return the overlap between the available keys (data you have) and all relevant
         keys (data that you want)."""
-        return set(config.analysis.relevant_keys[category]) & set(self.leaks.keys())
+        return set(config.analysis.relevant_keys[category]) & set(self.leaks.keys() + self.processed.keys())
             
     def analyze(self, again=False):
         """Runs all the analyses and then merges the newly analyzed data with the original data."""
@@ -176,11 +176,30 @@ class LeakResults(object):
             
     @register(1)
     @merge_processed
-    def _emailvalidation(self):
+    def _processemail(self):
         """Removes unhelpful email-like strings from the email list (e.g. 'icon@2xresolution.png')."""
         self.logger.info("Processing email addresses.")
-        for k in ['email']:
-            self.temp[k] = [Email(addr) for addr in self.leaks[k] if Email(addr).host.suffix in self.map.psl]
+        keys = ['email']
+        for k in keys:
+            self.temp[k] = []
+            self.temp['personal-%s'%k] = []
+            for addr in self.leaks[k]:
+                e = Email(addr)
+                if e.host.suffix in self.map.psl:
+                    self.temp[k].append(e)
+                    if e.host.registered_domain in self.map.emailproviders or e.host.suffix == "edu":
+                        self.temp['personal-%s' % k].append(e)
+                        
+    @register(1)
+    @merge_processed
+    def _geolocate(self):
+        """Gets location of host IP."""
+        if self.leaks.get('device-ip'):
+            self.logger.info("Geolocating IP address.")
+            try: 
+                self.temp['location'] = self.map.geolocate(self.leaks['device-ip'])
+            except AddressNotFoundError:
+                self.temp['location'] = "Unknown"
 
     @register(2)
     @merge_processed
@@ -293,16 +312,18 @@ class LeakResults(object):
         """Move form data into a more structured format."""
         self.logger.info('Processing form data.')
         
-        for k in self.available_keys('forms'):
-            self.temp[k] = [Form(data) for data in self.leaks[k]]
+        if self.available_keys('forms'):
+            for k in self.available_keys('forms'):
+                self.temp[k] = [Form(data) for data in self.leaks[k]]
             
-        # Append to domain/service    
-        for form in self.temp['formdata']:
-            domain = str(form.host.registered_domain)
-            if domain in self.leaks['combined']:
-                item = self.finditem(self.leaks['combined'], domain)
-                if not hasattr(item, "formdata"): item.formdata = []
-                item.formdata.append(form)
+            # Append to domain/service    
+
+            for form in self.temp['formdata']:
+                domain = str(form.host.registered_domain)
+                if domain in self.leaks['combined']:
+                    item = self.finditem(self.leaks['combined'], domain)
+                    if not hasattr(item, "formdata"): item.formdata = []
+                    item.formdata.append(form)
 
     @register(7)
     @merge_processed
@@ -529,23 +550,35 @@ class LeakResults(object):
     
     def _prep_export(self):
         # Dict to store data for export     
-        combined = self.leaks['combined']      
+        combined = self.finished['combined']      
         self._export = {
             'services': [svc for svc in combined if type(svc) == Service],
             'history': {'domains': [dom for dom in combined if type(dom) == Domain],
-                        'page-titles': self.leaks.get('html-titles')},
-            'private-browsing': self.leaks.get('private-browsing'),
-            'email': {k:self.leaks[k] for k in self.available_keys('email')},
-            'files': {k:self.leaks[k] for k in self.available_keys('files')},
-            'system': {k:self.leaks[k] for k in self.available_keys('system')},
-            'personal-info': {k:self.leaks[k] for k in self.available_keys('personal-info')}
+                        'page-titles': self.finished.get('html-titles')},
+            'private-browsing': self.finished.get('private-browsing'),
+            'email': {k:self.finished[k] for k in self.available_keys('email')},
+            'files': {k:self.finished[k] for k in self.available_keys('files')},
+            'system': {k:self.finished[k] for k in self.available_keys('system')},
+            'personal-info': {k:self.finished[k] for k in self.available_keys('personal-info')}
         }
     
-    def export(self, outfile):
+    def export(self, outfile, _format='json'):
+        _valid_formats = ['json', 'python']
+        
         self.logger.info("Exporting processed results to %s." % outfile)
         self._prep_export()
+
         with open(outfile, 'w') as f:
-            json.dump(self._export, f, default=ResultsEncoder)
+            if _format == 'json':
+                json.dump(self._export, f, default=ResultsEncoder)
+            elif _format == 'python':
+                try: 
+                    import cPickle as pickle
+                except:
+                    import pickle    
+                pickle.dump(self._export, f)
+            else:
+                raise ValueError("%s is not a valid export file format. Currently supported: %s" % (_format, _valid_formats))    
                 
     merge_processed = staticmethod(merge_processed)    
 

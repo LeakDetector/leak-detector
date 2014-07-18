@@ -7,6 +7,7 @@ except ImportError:
 from includes.alchemyapi import alchemyapi
 from includes.sqlitedict import SqliteDict
 import tldextract
+import geoip2.database
 
 import config.apis
 import config.files
@@ -32,6 +33,14 @@ class ServiceMap(object):
         self.process_map()
         self.init_product()
         self.init_categorizer()
+        
+        # Other classifiers
+        # TLD validation list (for email validation):
+        with open(config.files.PSL) as f: self.psl = pickle.load(f)
+        # Email providers
+        with open(config.files.EMAIL_LIST) as f: self.emailproviders = pickle.load(f)
+        # GeoIP
+        self.geoip = geoip2.database.Reader(config.files.GEOIP)
         
     def init_product(self):
         """Initialize product lookup APIs."""
@@ -72,10 +81,7 @@ class ServiceMap(object):
         
         # And create a new dictionary for name --> domain lookup.        
         self.service_names = {v:k for k, v in self.domainmap.items()}    
-        
-        # And open the TLD validation list (for email validation):
-        with open(config.files.PSL) as f: self.psl = pickle.load(f)
-        
+                
     def categorize_url(self, query):
         """Categorize a URL using AlchemyAPI given a certain URL."""
         
@@ -121,6 +127,22 @@ class ServiceMap(object):
                 # Doing "if domain in dmozinfo" would be better, but this is such a large
                 # database that takes more time than a try/except block to just catch errors
                 continue
+            
+    def geolocate(self, ip):
+        """Uses MaxMind GeoIP database to return a tuple of (city, state/province, postal code, country) given
+        an IP address.
+        
+        >>> m = ServiceMap()
+        >>> m.geolocate('128.237.173.190')
+        (u'Pittsburgh', u'Pennsylvania', u'15213', u'United States')
+        >>> m.geolocate('8.8.8.8')
+        (None, None, None, u'United States')
+        """
+        record = self.geoip.city(ip)
+        return (record.city.name, 
+                record.subdivisions.most_specific.name, 
+                record.postal.code, 
+                record.country.name)
             
     def fromdomain(self, domain, hits=0):
         """Returns a service given a stripped domain name, or a Domain if the mapping is nonexistent."""

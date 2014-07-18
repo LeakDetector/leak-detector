@@ -10,7 +10,7 @@ class SMTPLogParser(BroLogParser):
         from_addr = r['from']
         to_addr = r['to']
         subject = r['subject']
-        if from_addr != '-' or to_addr != '-' or subject != '-'
+        if from_addr != '-' or to_addr != '-' or subject != '-':
             self.data['email-activity'].append( (from_addr, to_addr, subject) )
         else:
             self.data['email-activity-generic'].append(r['helo'])

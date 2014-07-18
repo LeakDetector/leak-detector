@@ -61,12 +61,11 @@ DerivedData
 
 *.log
 
-bro/test.json
-
-bro/test2.json
 
 *.json
 
 *.db
 
 bro/todo.md
+
+bro/includes/GeoLite2-City.mmdb
