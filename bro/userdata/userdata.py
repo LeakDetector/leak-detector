@@ -50,6 +50,7 @@ class Service(object):
     A service has a name at a bare minimum, has a hit counter, and can be extended to contain any other
     data that would be relevant (e.g., usernames and passwords).
     """
+    
     def __init__(self, name, description=None, category=None, domains=None, hits=0):
         self.name = name
         self.description = description
@@ -116,6 +117,26 @@ class Service(object):
         else:
             raise TypeError('You cannot combine two Service instances that are for different services.')
     
+    ##### Dictionary interface compatability ##############
+    def __iter__(self):
+        return iter(self.__dict__)
+        
+    def __getitem__(self, item):
+        return self.__dict__.__getitem__(item)
+
+    def iterkeys(self): return self.__dict__.iterkeys()
+    
+    def itervalues(self): return self.__dict__.itervalues()
+        
+    def iteritems(self): return self.__dict__.iteritems()
+        
+    def items(self): return list(self.iteritems())
+        
+    def keys(self): return list(self.iterkeys())
+        
+    def values(self): return list(self.iteritems())
+    #######################################################
+
     def add_domain(self, domain):
         self.domains.append(domain)        
 
@@ -214,3 +235,6 @@ class Product(object):
             return self.name == other.name
         elif type(other) is str:
             return self.name == other
+            
+    def __iter__(self):
+        return iter(self.__dict__)

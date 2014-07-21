@@ -78,3 +78,33 @@ def register(order):
         func._prop = order
         return func
     return wrapper
+
+def findformdata(dlist, key, exact=True, limit=None):
+    """Extracts form data values from a list of domains. 
+    
+    The `limit` kwarg optionally takes a function that returns True given a domain,
+    which allows limiting searches to certain domains or attributes.
+    """
+    if not limit: limit = lambda v: True
+    
+    findings = defaultdict(list)
+    for domain in dlist:
+        if issubclass(type(domain), Service) and limit(domain) and hasattr(domain, 'formdata'):
+            if exact:
+                found = [key in f.data for f in domain.formdata]
+                if any(found): 
+                    indexes = [i for i, v in enumerate(found) if v == True]
+                    for i in indexes:
+                        findings[key].append(domain.formdata[i].data[key])
+            else:
+                found = [ map(lambda k: key in k, keys) for keys in [f.data.keys() for f in domain.formdata]]
+                for i, formfound in enumerate(found):
+                    if any(formfound):
+                        indexes = [j for j, v in enumerate(formfound) if v == True]
+                        for idx in indexes:
+                            thisdata = domain.formdata[i].data
+                            thiskey = thisdata.keys()[idx]
+                            data = thisdata[thiskey]
+                            findings[thiskey].append(thisdata[thiskey])
+
+    return findings                

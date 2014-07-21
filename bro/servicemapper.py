@@ -31,7 +31,6 @@ class ServiceMap(object):
         from config.servicelist import domainmap
         self.domainmap = domainmap        
         self.process_map()
-        self.init_product()
         self.init_categorizer()
         
         # Other classifiers
@@ -41,12 +40,6 @@ class ServiceMap(object):
         with open(config.files.EMAIL_LIST) as f: self.emailproviders = pickle.load(f)
         # GeoIP
         self.geoip = geoip2.database.Reader(config.files.GEOIP)
-        
-    def init_product(self):
-        """Initialize product lookup APIs."""
-        # Product lookup APIs. Currently supports eBay and Amazon.
-        self.ebayAPI = productinfo.Ebay(config.apis.EBAY_API_KEY)    
-        self.amazonAPI = productinfo.Amazon(config.apis.AMAZON_API_KEY)
     
     def init_categorizer(self):
         """Initialize access to categorization databases."""

@@ -58,4 +58,14 @@ Other files:
 * requirements.txt - List of Python required to use the project (readable by pip package manager)
 * todo.md - Self explanatory. 
 	
+Running the scripts
+-------------------
+Capture data:
+    
+	python leakdetector.py -i en1 -o output-file.json
+	# Replace `en1` with your network card. `en1` is Wi-Fi on OS X; en0 is Ethernet.
+
+Process data:
 	
+	python analyze.py output-file.json processed.json
+

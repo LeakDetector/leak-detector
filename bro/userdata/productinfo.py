@@ -2,7 +2,7 @@ import pickle
 import requests
 import includes.bottlenose as bottlenose
 from BeautifulSoup import BeautifulSoup
-from userdata.userdata import Product
+from userdata import Product
 
 class Amazon(object):
     """An interface to Amazon's ItemLookup API."""

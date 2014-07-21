@@ -20,7 +20,7 @@ import config.custom
 import config.analysis
 from servicemapper import *
 from userdata.userdata import *
-from utils import merge_dicts, class_register, register
+from utils import merge_dicts, class_register, register, findformdata
 
 def ResultsEncoder(o):
     """
@@ -395,15 +395,13 @@ class LeakResults(object):
                 if not hasattr(item, "queries"): item.queries = set()
                 item.queries.add(searchterm)
                 
-#            self.temp['queries'].append( (domain, searchterm) )
-
         # Process further: for example, get the product info from an Amazon ASIN
         interesting_sites = [(domain, uri) for domain, uri in self.processed['http-queries'] 
                                 if any(key == domain.registered_domain for key in site_matching.keys())]
 
         for domain, uri in interesting_sites:
             # Grab the appropriate regex term extractor 
-            matches = re.compile(site_matching[domain.registered_domain]).findall(uri)
+            matches = site_matching[domain.registered_domain].findall(uri)
             
             if matches and (domain.subdomain not in excluded and domain.domain not in excluded):
                 # Handle things by service and tag relevant item
@@ -424,14 +422,9 @@ class LeakResults(object):
                     wiki.queries.add(article)
                 else:    
                     item = self.finditem(self.leaks['combined'], domain.registered_domain)
-                    if not hasattr(item, "queries"): item.queries = set
+                    if not hasattr(item, "queries"): item.queries = set()
                     item.queries.add(matches[0])
-                    
-                # if domain.registered_domain not in self.temp['queries-by-site']:
-                #     self.temp['queries-by-site'][domain.registered_domain] = []
-                # self.temp['queries-by-site'][domain.registered_domain].append( (domain, matches) )
-                
-            # Also a chance to integrate page titles?
+    
 
     @register(8)
     @merge_processed
