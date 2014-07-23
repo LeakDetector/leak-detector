@@ -378,7 +378,6 @@ class LeakResults(object):
         # Exclude some domains (like autocomplete servers with noisy data)
         excluded = config.analysis.query_ignore_domains
         filter_keywords = config.analysis.query_keywords
-        site_matching = config.analysis.sites_to_extractors 
         
         # Build list of queries to further process
         interesting_queries = []
@@ -415,9 +414,14 @@ class LeakResults(object):
             
             if extractors and not_excluded:
                 # Handle things by service and tag relevant item
-                for ex in extractors.getall('uri-regex'):
-                    ex.process(self, uri)
-    
+                if type(extractors) is list:
+                    # Could be a list...
+                    for ex in extractors:
+                        ex.process(self, uri)
+                else:
+                    # Or just a single extractor
+                    extractors.process(self, uri)
+                    
     @register(8)
     @merge_processed
     def _categorize_infrastructure(self):

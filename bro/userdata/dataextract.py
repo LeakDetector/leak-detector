@@ -28,20 +28,25 @@ class SiteURIRegex(ExtractSiteStructuredData):
         self.scope = scope # term we're searching for
         self.attr = attr # name for target attribute
         self.re = re     # extractor re
-        if further:      # process extracted further?
-            self.further = further
+        if further:
+            self.further = further 
         else:
-            self.further = lambda i: i    
+            self.further = (lambda i: i)
+
         
     def process(self, parent, data):
         """Process the extracted data and add to relevant domain."""
-        assert( type(parent) == LeakResults )
+        if "LeakResults" not in str(parent.__class__):
+            raise TypeError("`parent` must be a LeakResults object.")
 
         matches = self.re.findall(data)
-        item = self.further(matches[0][1]) if not type(matches[0][0]) is str else self.further(matches[0])
-        existing = parent.finditem(parent.leaks['combined'], self.scope)    
-        if not hasattr(existing, self.attr): setattr(existing, self.attr, set())
-        getattr(existing, self.attr).add(item) 
+        if matches:
+            item = self.further(matches[0][1]) if not type(matches[0][0]) is str else self.further(matches[0])
+            existing = parent.finditem(parent.leaks['combined'], self.scope)    
+            if not hasattr(existing, self.attr): setattr(existing, self.attr, set())
+            getattr(existing, self.attr).add(item) 
+        else:
+            return    
 
 class SiteFormData(ExtractSiteStructuredData):
     """Extractor that grabs values from recorded site form data given
@@ -52,21 +57,33 @@ class SiteFormData(ExtractSiteStructuredData):
         self.attr = attr   # What kind of data is this?
         self.keys = keys   # What form data are we searching for?
         self.exact = exact # Exact key matches or substrings?
-        self.further = further # Further processing functions
+        if further:
+            self.further = further 
+        else:
+            self.further = (lambda i: i)
 
     def process(self, parent, target):
-        """Process extracted data and append to relevant domain or service."""
+        """Process extracted data and append to relevant domain or service.
         
-        assert( type(parent) == LeakResults )
+        parent --> LeakResults object
+        target --> Domain object list
+        """
+        if "LeakResults" not in str(parent.__class__):
+            raise TypeError("`parent` must be a LeakResults object.")
+        
         attrinfo = defaultdict(set)
         
         for key in self.keys:
             matches = findformdata(target, key, exact=self.exact, limit=lambda i: i == self.scope)
             if matches and self.exact:
-                attrinfo[key].append(self.further(reduce(list.__add__, matches[key])))
+                the_match = tuple(reduce(list.__add__, matches[key]))
+                # Add the match
+                attrinfo[key].add(self.further(the_match))
             elif matches:
+                # Add all the matches, even partial
                 for k, v in matches.items():
-                    attrinfo[k].append(self.further(reduce(list.__add__, v)))
+                    the_match = tuple(reduce(list.__add__, v))
+                    attrinfo[k].add(self.further(the_match))
             existing = parent.finditem(parent.leaks['combined'], self.scope)
 
             if not hasattr(existing, self.attr): 
@@ -104,24 +121,29 @@ class ExtractorRegistry(object):
         return "%s - %s" % (self.__class__, self._list)
     
     def get(self, item):
+        """Get a specific domain's extractor."""
         return self.__getitem__(item)    
         
     def getall(self, _type):
+        """Get all extractors of a certain type."""
         if _type in self._types.keys():
             return [i for i in self._list if type(i) == self._types[_type] ]
         else:
             raise ValueError("%s is an unsupported type. Currently available: %s" % (_type, ', '.join(self._types.keys()) ))
         
     def register(self, extractor):
+        """Register a new extractor."""
         if not issubclass(type(extractor), ExtractSiteStructuredData):
             raise TypeError(self.msg_badtype)
         self._list.append(extractor)    
         self._extractors[extractor.scope].append(extractor)
         
     def sites(self):
+        """List of all the extractors' domains."""
         return self._extractors.keys()
     
     def extractors(self):
+        """List of all extractors."""
         return reduce(list.__add__, self._extractors.values())                
                 
                 
@@ -130,11 +152,12 @@ def newextractor(properties, **kwargs):
     and returns a new class."""
     
     if properties['type'] == 'regex':
-        return SiteURIRegex(properties['scope'], properties['attribute'], properties['regex'], **kwargs)
+        further = properties.get('further') or (lambda i: i)    
+        return SiteURIRegex(properties['scope'], properties['attribute'], properties['regex'], further=further, **kwargs)
     elif properties['type'] == 'formdata':
         exact = properties.get('exact') or True
         further = properties.get('further') or (lambda i: i)    
-        return SiteFormData(properties['scope'], properties['attribute'], properties['keys'], exact=exact, **kwargs)    
+        return SiteFormData(properties['scope'], properties['attribute'], properties['keys'], exact=exact, further=further, **kwargs)    
     else:
         raise TypeError
 

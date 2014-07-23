@@ -78,8 +78,22 @@ def register(order):
         func._prop = order
         return func
     return wrapper
+    
+def allwith(l, attr, display=None):
+    """Return all objects with attribute `attr` in list l, optionally
+    displaying selected attributes listed in `display`.
+    
+    """
+    with_attr = [i for i in l if hasattr(i, attr)]
+    if display:
+        assert( type(display) in [list, tuple] )
+        return [ tuple(getattr(i,key) for key in display) for i in with_attr ]
+    else:
+        return with_attr    
 
 def findformdata(dlist, key, exact=True, limit=None):
+    from userdata import userdata
+    
     """Extracts form data values from a list of domains. 
     
     The `limit` kwarg optionally takes a function that returns True given a domain,
@@ -89,7 +103,7 @@ def findformdata(dlist, key, exact=True, limit=None):
     
     findings = defaultdict(list)
     for domain in dlist:
-        if issubclass(type(domain), Service) and limit(domain) and hasattr(domain, 'formdata'):
+        if issubclass(type(domain), userdata.Service) and limit(domain) and hasattr(domain, 'formdata'):
             if exact:
                 found = [key in f.data for f in domain.formdata]
                 if any(found): 

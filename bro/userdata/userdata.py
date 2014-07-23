@@ -7,7 +7,6 @@ from collections import defaultdict
 import tldextract
 from utils import merge_dicts 
 
-
 class UserData(object):
     def __init__(self, data={}):
         self.data = data
