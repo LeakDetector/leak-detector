@@ -11,7 +11,6 @@ import logging
 from includes.google_analytics_cookie import *
 from includes.cookies import Cookies
 from BeautifulSoup import BeautifulSoup 
-
 import tldextract
 import requests
 
@@ -19,6 +18,7 @@ import requests
 import config.custom
 import config.analysis
 from servicemapper import *
+from userdata import dataextract
 from userdata.userdata import *
 from utils import merge_dicts, class_register, register, findformdata
 
@@ -103,6 +103,8 @@ class LeakResults(object):
         self.finished = {}
         # Initialize container class for analysis utilities
         self.map = ServiceMap()
+        # User data extractor classes
+        self.extractors = dataextract.genextractors()
         # State
         self.analysis_finished = False
         
@@ -317,13 +319,21 @@ class LeakResults(object):
                 self.temp[k] = [Form(data) for data in self.leaks[k]]
             
             # Append to domain/service    
-
             for form in self.temp['formdata']:
                 domain = str(form.host.registered_domain)
                 if domain in self.leaks['combined']:
                     item = self.finditem(self.leaks['combined'], domain)
                     if not hasattr(item, "formdata"): item.formdata = []
                     item.formdata.append(form)
+                    
+            # Process formdata with extractors
+            interesting_sites = list( set(f.host.registered_domain for f in self.temp['formdata']) &\
+                                      set(ex.scope for ex in self.extractors.getall('form')) )
+
+            for site in interesting_sites:
+                extractor = self.extractors.get(site)
+                self.logger.debug("FORM %s" % extractor)
+                if extractor: extractor.process(self, self.leaks['combined'])
 
     @register(7)
     @merge_processed
@@ -365,10 +375,7 @@ class LeakResults(object):
         
         self.logger.info('Extracting search queries and product information.')
         
-        # self.temp['queries'] = []
-        # self.temp['queries-by-site'] = {}
-        
-        # Exclude some domains (like autocomplete servers)
+        # Exclude some domains (like autocomplete servers with noisy data)
         excluded = config.analysis.query_ignore_domains
         filter_keywords = config.analysis.query_keywords
         site_matching = config.analysis.sites_to_extractors 
@@ -396,36 +403,21 @@ class LeakResults(object):
                 item.queries.add(searchterm)
                 
         # Process further: for example, get the product info from an Amazon ASIN
+        
+        # All domains recorded if they also appear in the list of sites with extractors
         interesting_sites = [(domain, uri) for domain, uri in self.processed['http-queries'] 
-                                if any(key == domain.registered_domain for key in site_matching.keys())]
+                                if any(ex.scope == domain.registered_domain for ex in self.extractors.getall('uri-regex'))]
 
         for domain, uri in interesting_sites:
-            # Grab the appropriate regex term extractor 
-            matches = site_matching[domain.registered_domain].findall(uri)
+            # Grab the appropriate extractor class
+            extractors = self.extractors.get(domain.registered_domain)
+            not_excluded = (domain.subdomain not in excluded and domain.domain not in excluded)
             
-            if matches and (domain.subdomain not in excluded and domain.domain not in excluded):
+            if extractors and not_excluded:
                 # Handle things by service and tag relevant item
-                if domain.registered_domain == 'amazon.com': # lookup by ASIN
-                    product = self.map.amazonAPI.asinlookup(matches[0][1])
-                    amazon = self.finditem(self.leaks['combined'], "Amazon")
-                    if not hasattr(amazon, "products"): amazon.products = set()
-                    amazon.products.add(product)
-                elif domain.registered_domain == 'ebay.com': # lookup by ebay ID 
-                    product = self.map.ebayAPI.idlookup(matches[0][1])
-                    ebay = self.finditem(self.leaks['combined'], "eBay")
-                    if not hasattr(ebay, "products"): ebay.products = set()
-                    ebay.products.add(product)
-                elif domain.registered_domain == 'wikipedia.org':
-                    article = matches[0][1]
-                    wiki = self.finditem(self.leaks['combined'], "wikipedia.org")
-                    if not hasattr(wiki, "queries"): wiki.queries = set()
-                    wiki.queries.add(article)
-                else:    
-                    item = self.finditem(self.leaks['combined'], domain.registered_domain)
-                    if not hasattr(item, "queries"): item.queries = set()
-                    item.queries.add(matches[0])
+                for ex in extractors.getall('uri-regex'):
+                    ex.process(self, uri)
     
-
     @register(8)
     @merge_processed
     def _categorize_infrastructure(self):
