@@ -17,6 +17,7 @@ class Amazon(object):
             raise IOError("%s.  Please load a valid API settings file." % e) 
         APIsettings['Parser'] = BeautifulSoup
         self.amazonAPI.__dict__ = APIsettings    
+        self.cache = {}
         
     def asinlookup(self, asin):
         """Look up a product via ASIN number and return a new Product object with the relevant
@@ -33,19 +34,24 @@ class Amazon(object):
         # ten-character alphanumeric string (e.g., B000012345X)
         is_asin = re.compile("[a-zA-Z0-9]{10}").match
         if is_asin(asin) and len(asin) == 10:
-            item = self.amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="ItemAttributes")
-            itemattr = lambda tag: item.find(tag).text
+            if asin not in self.cache:
+                item = self.amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="ItemAttributes")
+                itemattr = lambda tag: item.find(tag).text
             
-            # Response will contain an <error> tag if there is a problem
-            if not item.find('error'): 
-                attrtags = ['title', 'formattedprice', 'brand']
-                name, price, vendor = [item.find(attr).text for attr in attrtags]
-                category = "%s > %s" % (itemattr('binding'), itemattr('productgroup'))
-                return Product(name, price=price, vendor=vendor, description=category)
+                # Response will contain an <error> tag if there is a problem
+                if not item.find('error'): 
+                    attrtags = ['title', 'formattedprice', 'brand']
+                    name, price, vendor = [item.find(attr).text for attr in attrtags]
+                    category = "%s > %s" % (itemattr('binding'), itemattr('productgroup'))
+                    product = Product(name, price=price, vendor=vendor, description=category)
+                    self.cache[asin] = product
+                    return product
+                else:
+                    # Since an automated process is providing the ASINs, fail silently instead of
+                    # raising an exception as matches aren't guaranteed to be 100% accurate.
+                    return False
             else:
-                # Since an automated process is providing the ASINs, fail silently instead of
-                # raising an exception as matches aren't guaranteed to be 100% accurate.
-                return False
+                return self.cache[asin]        
         else:
             raise ValueError("%s is not a valid ASIN (must be alphanumeric and ten characters long)." % asin)
                 
