@@ -1,0 +1,5 @@
+BeautifulSoup==3.2.1
+requests==2.0.1
+tldextract==1.4
+simplejson==3.5.3
+pygeoip==0.3.1
