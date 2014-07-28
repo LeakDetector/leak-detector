@@ -1,7 +1,0 @@
-- Look for P3P HTTP headers?
-- Look for HTTP cookies?
-- Grab ico files?
-- Reverse DNS lookups
-- Look at regexes --- might only be matching first occurrence?
-- Compare regex matches w/ per-packet matching --- do we gain any hiding in UDP pkts? Do we lose any that straddled pkt boundaries?
-- Instrument everything, figure out where time is begin spent

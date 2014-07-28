@@ -1,0 +1,7 @@
+include requirements.txt
+include *.md
+recursive-include includes *
+recursive-include scripts *.bro
+
+prune dumps
+global-exclude *.pyc *.json
