@@ -122,6 +122,16 @@ class LeakResults(object):
         """Return the overlap between the available keys (data you have) and all relevant
         keys (data that you want)."""
         return set(config.analysis.relevant_keys[category]) & set(self.leaks.keys() + self.processed.keys())
+        
+    def is_available(self, key):
+        """Single-serving version of available_keys."""
+        
+        if type(key) in [list, tuple]:
+            return all(k in self.leaks for k in key)
+        elif type(key) in [str, unicode]:    
+            return key in self.leaks
+        else:
+            raise ValueError    
             
     def analyze(self, again=False):
         """Runs all the analyses and then merges the newly analyzed data with the original data."""
@@ -180,8 +190,9 @@ class LeakResults(object):
     @merge_processed
     def _processemail(self):
         """Removes unhelpful email-like strings from the email list (e.g. 'icon@2xresolution.png')."""
-        self.logger.info("Processing email addresses.")
-        keys = ['email']
+
+        if self.leaks.get('email'):
+            keys = ['email']
         for k in keys:
             self.temp[k] = []
             self.temp['personal-%s'%k] = []
@@ -246,7 +257,8 @@ class LeakResults(object):
     @merge_processed
     def _processhttpinfo(self):
         """Extract unsecure HTTP requests into parsed (domain, uri) tuples."""
-        self.temp['http-queries'] = [(tldextract.extract(data[0]), data[1]) for data in self.leaks['http-queries']]
+        if self.leaks.get('http-queries'):
+            self.temp['http-queries'] = [(tldextract.extract(data[0]), data[1]) for data in self.leaks['http-queries']]
 
     @register(5)
     @merge_processed
@@ -345,27 +357,28 @@ class LeakResults(object):
         # future: extract info per service (i.e. United flight searches)
         self.temp['cookies'] = []
         # Extract cookies into key-value format
-        for domain, cdata in self.leaks['cookies']:
-            try:
-                container = Cookies.from_request("Cookie: %s" % cdata, ignore_bad_cookies=True)
-                container.domain = tldextract.extract(domain)
-                self.temp['cookies'].append(container)
-            except:
-                # Some sites have cookies that are apparently VERY not up to spec
-                continue
+        if self.leaks.get('cookies'):
+            for domain, cdata in self.leaks['cookies']:
+                try:
+                    container = Cookies.from_request("Cookie: %s" % cdata, ignore_bad_cookies=True)
+                    container.domain = tldextract.extract(domain)
+                    self.temp['cookies'].append(container)
+                except:
+                    # Some sites have cookies that are apparently VERY not up to spec
+                    continue
                 
-        # Analyze google analytics cookies
-        ga_cookies = [c for c in self.temp['cookies'] if "__utma" in c]
-        relevant_cookies = []
-        for cookie in ga_cookies:
-            gatime = GoogleAnalyticsCookie(utma=cookie['__utma'].value).utma
-            relevant_cookies.append((cookie.domain, gatime['first_visit_at'], gatime['previous_visit_at']))
+            # Analyze google analytics cookies
+            ga_cookies = [c for c in self.temp['cookies'] if "__utma" in c]
+            relevant_cookies = []
+            for cookie in ga_cookies:
+                gatime = GoogleAnalyticsCookie(utma=cookie['__utma'].value).utma
+                relevant_cookies.append((cookie.domain, gatime['first_visit_at'], gatime['previous_visit_at']))
             
-            for domain, first, prev in set(relevant_cookies):
-                if domain in self.leaks['combined']:
-                    item = self.finditem(self.leaks['combined'], domain)
-                    item.first_visit = first
-                    item.prev_visit = prev
+                for domain, first, prev in set(relevant_cookies):
+                    if domain in self.leaks['combined']:
+                        item = self.finditem(self.leaks['combined'], domain)
+                        item.first_visit = first
+                        item.prev_visit = prev
 
     @register(7)
     @merge_processed                
@@ -381,6 +394,7 @@ class LeakResults(object):
         
         # Build list of queries to further process
         interesting_queries = []
+        if not self.leaks.get('http-queries'): return
         for domain, uri in self.processed['http-queries']:
             qs = urlparse.parse_qs(uri)
             if any(key in qs for key in filter_keywords):
@@ -438,12 +452,18 @@ class LeakResults(object):
 
         # If any requests match the substring rules
         for trackerdomain, regex in self.map.trackers['substring-rules']:
-            for domain, uri in self.processed['http-queries']:
-                domain_and_uri_match = ( trackerdomain and trackerdomain == domain and regex.findall(uri) )
-                uri_match = (not trackerdomain and regex.findall(uri))
-                if domain_and_uri_match or uri_match:
-                    # Set flag
-                    self.finditem(self.leaks['combined'], domain).tracking = True
+            match = False
+            for d in self.leaks['combined']:
+                if trackerdomain in d.domains: match = True 
+            
+            if self.leaks.get('http-queries'):
+                for domain, uri in self.processed['http-queries']:
+                    domain_and_uri_match = ( trackerdomain and trackerdomain == domain and regex.findall(uri) )
+                    uri_match = (not trackerdomain and regex.findall(uri))
+                    if domain_and_uri_match or uri_match: match = True
+
+            if match:
+                self.finditem(self.leaks['combined'], domain).tracking = True
                     
         # Categorize CDN domains and remove individual domains
         present_cdns = list(set([d for d in self.map.cdns if d in self.leaks['combined']]))

@@ -61,11 +61,9 @@ DerivedData
 
 *.log
 
-
 *.json
-
 *.db
 
 bro/todo.md
 
-bro/includes/GeoLite2-City.mmdb
+package/leakdetector/includes/site-data/archived-dmoz.zip

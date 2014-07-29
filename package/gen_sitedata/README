@@ -1,0 +1,3 @@
+This folder contains scripts for generating some of the larger data sets that leak detector references.  Run `generate_trackerdata.py` to download and parse the list of domains associated with analytics and tracking services.  Run `generate_categorization_db.py` to download, parse, and format the (rather large) DMOZ web directory database, which the automatic categorization function uses.  
+
+Normally, both databases will be automatically set up when setup.py runs.
