@@ -5,7 +5,7 @@ from operator import itemgetter
 from collections import defaultdict
 
 import tldextract
-from utils import merge_dicts 
+from ..utils import merge_dicts 
 
 class UserData(object):
     def __init__(self, data={}):

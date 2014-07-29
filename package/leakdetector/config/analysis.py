@@ -1,7 +1,7 @@
 import re
 
-import config.apis
-from userdata import productinfo
+from ..config import apis
+from ..userdata import productinfo
 
 # A list of trace outputs relevant to different areas of interest.
 relevant_keys = {
@@ -36,13 +36,13 @@ extractors = {
         'scope': 'ebay.com', 
         'regex': re.compile(r'/itm/(.+)/([0-9]{12})'), 
         'attribute': 'products',
-        'further': productinfo.Ebay(config.apis.EBAY_API_KEY)},
+        'further': productinfo.Ebay(apis.EBAY_API_KEY)},
     "amazon": 
         {'type': 'regex',
         'scope': 'amazon.com',   
         'regex': re.compile(r"(/|a=|dp|gp/product)([a-zA-Z0-9]{10})"), 
         'attribute': 'products',
-        'further': productinfo.Amazon(config.apis.AMAZON_API_KEY).asinlookup},
+        'further': productinfo.Amazon(apis.AMAZON_API_KEY).asinlookup},
     "southwest":
         {'type': 'formdata',
         'scope': 'southwest.com',

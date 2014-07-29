@@ -1,2 +1,2 @@
-from includes.bottlenose.api import *
+from api import *
 

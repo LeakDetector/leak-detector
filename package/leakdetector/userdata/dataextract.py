@@ -2,9 +2,8 @@ from collections import defaultdict
 import re
 
 import productinfo
-import config.analysis
-import config.apis
-from utils import findformdata
+from ..config import analysis
+from ..utils import findformdata
 
 class ExtractSiteStructuredData(object):
     """Base class for all extractors."""
@@ -165,6 +164,6 @@ def genextractors():
     """Returns a registry of all extractors defined in the configuration
     file `config.analysis.extractors`."""
     
-    extractorlist = [newextractor(props) for props in config.analysis.extractors.values()]            
+    extractorlist = [newextractor(props) for props in analysis.extractors.values()]            
     return ExtractorRegistry(extractorlist)
 
