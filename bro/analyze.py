@@ -15,7 +15,7 @@ import tldextract
 import requests
 
 # Leak detector specific
-import config.custom
+#import config.custom
 import config.analysis
 from servicemapper import *
 from userdata import dataextract
