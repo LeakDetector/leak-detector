@@ -11,7 +11,7 @@ import geoip2.database
 
 import config.apis
 import config.files
-import productinfo
+import userdata.productinfo
 from userdata.userdata import *
 
 class ServiceMap(object):

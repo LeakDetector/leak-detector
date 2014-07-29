@@ -14,8 +14,13 @@ import glob
 from userdata.userdata import UserData
 import parsers
 
+try:
+    here = os.path.dirname(os.path.realpath(__file__))
+except NameError:
+    here = os.path.curdir + os.path.sep
+
 BRO = '/usr/bin/env bro'
-BRO_SCRIPTS = glob.glob("scripts/*.bro")
+BRO_SCRIPTS = glob.glob(os.path.join(here, "scripts/*.bro"))
 
 # which bro logs do we want to parse?
 # maps log name to corresponding parser class

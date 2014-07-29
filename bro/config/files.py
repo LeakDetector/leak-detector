@@ -1,29 +1,36 @@
-"""Files and includes for various databases and preset lists."""
+import os.path
 
+"""Files and includes for various databases and preset lists.""" 
+try:
+    here = os.path.dirname(os.path.realpath(__file__))
+except NameError:
+    here = os.path.curdir + os.path.sep
+here = os.path.join(here, "../")
+    
 # List of domains associated with advertisers, analytics, and tracking services.
-TRACKER_LIST = "includes/site-data/tracker-rules.dat" #pickle
+TRACKER_LIST = os.path.join(here, "includes/site-data/tracker-rules.dat") #pickle
 
 # Info on the top 500 sites.
-TOP500_LIST = "includes/site-data/top500-sites.dat" #pickle
+TOP500_LIST = os.path.join(here, "includes/site-data/top500-sites.dat") #pickle
 
 # Content distribution networks.
-CDN_LIST = "includes/site-data/cdns.dat" #pickle
+CDN_LIST = os.path.join(here, "includes/site-data/cdns.dat") #pickle
 
 # List of email provider domains
-EMAIL_LIST = "includes/email-providers.dat"
+EMAIL_LIST = os.path.join(here, "includes/email-providers.dat")
 
 # Processed DMOZ databases for site categorization.
 SITE_CATEGORIES = { #sqlitedict
-    'main': 'includes/site-data/dmoz.db',
-    'regional-us': 'includes/site-data/regional_dmoz.db',
-    'world': 'includes/site-data/world_dmoz.db'
+    'main': os.path.join(here, 'includes/site-data/dmoz.db'),
+    'regional-us': os.path.join(here, 'includes/site-data/regional_dmoz.db'),
+    'world': os.path.join(here, 'includes/site-data/world_dmoz.db')
 }
 
 # Public suffix list (valid tlds)
-PSL = "includes/processed-psl.dat" #pickled
+PSL = os.path.join(here, "includes/processed-psl.dat") #pickled
 
 # List of form data regular expressions (taken from Chrome source) to parse formdata.
-FORM_REGEXES = "includes/form-data-regex.dat" #pickled
+FORM_REGEXES = os.path.join(here, "includes/form-data-regex.dat") #pickled
 
 # MaxMind GeoLite2-City database 
-GEOIP = "includes/GeoLite2-City.mmdb"
+GEOIP = os.path.join(here, "includes/GeoLite2-City.mmdb")

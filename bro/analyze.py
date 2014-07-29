@@ -193,15 +193,15 @@ class LeakResults(object):
 
         if self.leaks.get('email'):
             keys = ['email']
-        for k in keys:
-            self.temp[k] = []
-            self.temp['personal-%s'%k] = []
-            for addr in self.leaks[k]:
-                e = Email(addr)
-                if e.host.suffix in self.map.psl:
-                    self.temp[k].append(e)
-                    if e.host.registered_domain in self.map.emailproviders or e.host.suffix == "edu":
-                        self.temp['personal-%s' % k].append(e)
+            for k in keys:
+                self.temp[k] = []
+                self.temp['personal-%s'%k] = []
+                for addr in self.leaks[k]:
+                    e = Email(addr)
+                    if e.host.suffix in self.map.psl:
+                        self.temp[k].append(e)
+                        if e.host.registered_domain in self.map.emailproviders or e.host.suffix == "edu":
+                            self.temp['personal-%s' % k].append(e)
                         
     @register(1)
     @merge_processed
