@@ -612,7 +612,7 @@ def main(infile, outfile, verbose):
     # Export
     leaks.export(outfile)
 
-if __name__ == '__main__':
+def commandline():
     import argparse
     
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,\
@@ -623,5 +623,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     main(args.input, args.output, args.verbose)
+    
+
+if __name__ == '__main__':
+    commandline()
     
                 

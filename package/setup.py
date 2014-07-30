@@ -12,8 +12,8 @@ version = "0.1-summer2014"
 description = "Capture and analysis of network traffic for personal information"
 packages = find_packages()
 reqs = ['BeautifulSoup>=3.2.1', 'requests>=2.0.1', 'tldextract', 'simplejson', 'geoip2']
-genscripts = { 'console_scripts': ['leakdetector = leakdetector.leakdetector.commandline', 
-                                   'leakdetector-analyze = leakdetector.analyze.commandline']
+genscripts = { 'console_scripts': ['leakdetector = leakdetector.leakdetector:commandline', 
+                                   'leakdetector-analyze = leakdetector.analyze:commandline']
              }
 
 setup(name=name, 
