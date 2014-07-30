@@ -1,8 +1,6 @@
 .DS_Store
 traces
-
 *.py[cod]
-
 # C extensions
 *.so
 
@@ -65,5 +63,7 @@ DerivedData
 *.db
 
 bro/todo.md
+
+dist
 
 package/leakdetector/includes/site-data/archived-dmoz.zip

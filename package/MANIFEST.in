@@ -1,0 +1,5 @@
+include ez_setup.py
+global-include archived-dmoz.zip *.bro *.mgc *.dat *.mmdb *.md *.txt
+global-exclude *.pyc *.json .gitignore .DS_Store
+prune dumps
+prune leakdetector/dumps
