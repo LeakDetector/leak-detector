@@ -21,9 +21,8 @@ setup(name=name,
       description=description, 
       packages=packages, 
       install_requires=reqs, 
+      setup_requires=['requests'],
       entry_points=genscripts
-#      package_data = {'': ['*.zip']},
-#      include_package_data=True
 )
 
 class install(_install):
@@ -39,9 +38,17 @@ class install(_install):
                 z.extractall(os.path.dirname(db_loc))
             z.closed
         else:
-            generate()    
+            generate()
+        
+        import installbro
+
+        if installbro.check_install():
+            pass
+        else:
+            installbro.main()    
+                
     def generate(self):
-	from gen_sitedata import generate_categorization_db, generate_trackerdata
+        from gen_sitedata import generate_categorization_db, generate_trackerdata
         logger = logging.getLogger(__name__)
         logging.basicConfig(level=logging.INFO)
         db_loc = resource_filename('leakdetector', 'includes/site-data')
