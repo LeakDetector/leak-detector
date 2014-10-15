@@ -1,6 +1,6 @@
 import pickle
 import requests
-from ..includes import bottlenose as bottlenose
+from includes import bottlenose as bottlenose
 from BeautifulSoup import BeautifulSoup
 from userdata import Product
 

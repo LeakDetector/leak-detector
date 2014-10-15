@@ -1,7 +1,7 @@
 import re
 
-from ..config import apis
-from ..userdata import productinfo
+from config import apis
+from userdata import productinfo
 
 # A list of trace outputs relevant to different areas of interest.
 relevant_keys = {
