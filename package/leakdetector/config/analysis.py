@@ -21,7 +21,7 @@ relevant_keys = {
 
 # settings for _processqueries
 query_ignore_domains = ['fls-na', 'fls', 'files', 'img', 'images']
-query_keywords = ["q", "kwd", "search", "search_query", "find_desc", "st", "_nkw"]
+query_keywords = ["q", "kwd", "search", "search_query", "find_desc", "st", "_nkw", "field-keywords"]
                                             # youtube                       # ebay
 
 # structured data extraction

@@ -1,6 +1,7 @@
 from collections import defaultdict
 import re
 
+# Leak detector specific
 import productinfo
 from ..config import analysis
 from ..utils import findformdata
@@ -26,26 +27,33 @@ class SiteURIRegex(ExtractSiteStructuredData):
     def __init__(self, scope, attr, re, further=None):
         self.scope = scope # term we're searching for
         self.attr = attr # name for target attribute
-        self.re = re     # extractor re
+        self.re = re     # extractor regex
         if further:
+            # Further processing function
             self.further = further 
         else:
+            # Have it exist for the sake of laziness (so we can always call it)
             self.further = (lambda i: i)
-
         
     def process(self, parent, data):
         """Process the extracted data and add to relevant domain."""
+        
         if "LeakResults" not in str(parent.__class__):
             raise TypeError("`parent` must be a LeakResults object.")
 
         matches = self.re.findall(data)
+        
         if matches:
-            item = self.further(matches[0][1]) if not type(matches[0][0]) is str else self.further(matches[0])
+            # Grab the relevant extracted term
+            item = self.further(matches[0][1]) \
+                    if not type(matches[0][0]) is str else self.further(matches[0])
+            # Has that term been recorded on this domain yet?
             existing = parent.finditem(parent.leaks['combined'], self.scope)    
-            if not hasattr(existing, self.attr): setattr(existing, self.attr, set())
+            if not hasattr(existing, self.attr): 
+                # If not, create the set to hold matches
+                setattr(existing, self.attr, set())
+            # Add it
             getattr(existing, self.attr).add(item) 
-        else:
-            return    
 
 class SiteFormData(ExtractSiteStructuredData):
     """Extractor that grabs values from recorded site form data given
@@ -62,17 +70,20 @@ class SiteFormData(ExtractSiteStructuredData):
             self.further = (lambda i: i)
 
     def process(self, parent, target):
-        """Process extracted data and append to relevant domain or service.
+        """
+        Process extracted data and append to relevant domain or service.
         
         parent --> LeakResults object
         target --> Domain object list
         """
+        
         if "LeakResults" not in str(parent.__class__):
             raise TypeError("`parent` must be a LeakResults object.")
         
         attrinfo = defaultdict(set)
         
         for key in self.keys:
+            # Look for relevant form data
             matches = findformdata(target, key, exact=self.exact, limit=lambda i: i == self.scope)
             if matches and self.exact:
                 the_match = tuple(reduce(list.__add__, matches[key]))
@@ -83,8 +94,9 @@ class SiteFormData(ExtractSiteStructuredData):
                 for k, v in matches.items():
                     the_match = tuple(reduce(list.__add__, v))
                     attrinfo[k].add(self.further(the_match))
+            # Find domain/service object        
             existing = parent.finditem(parent.leaks['combined'], self.scope)
-
+            # Add information 
             if not hasattr(existing, self.attr): 
                 setattr(existing, self.attr, attrinfo)        
                 

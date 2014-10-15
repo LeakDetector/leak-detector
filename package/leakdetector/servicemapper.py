@@ -4,11 +4,13 @@ try:
 except ImportError:
     import pickle    
 
+# Third party
 from includes.alchemyapi import alchemyapi
 from includes.sqlitedict import SqliteDict
 import tldextract
 import geoip2.database
 
+# Leak detector specific
 import config.apis
 import config.files
 import userdata.productinfo
@@ -77,10 +79,12 @@ class ServiceMap(object):
                 
     def categorize_url(self, query):
         """Categorize a URL using AlchemyAPI given a certain URL."""
-        
+
         self.logger.debug("CATEGORIZE: trying to categorize %s" % query)
+        # Lookup from API
         results = self.alchemyAPI.taxonomy("url", query)
         status = results['status']
+        
         if status == "OK":
             taxonomy = results['taxonomy']
             if taxonomy:
@@ -143,25 +147,30 @@ class ServiceMap(object):
         from config.servicelist import mapping
         
         try:
+            # Look up the domain
             name = self.SERVICE_MAP[domain.domain]
         except KeyError:
+            # If it's not there, set the name to the domain
             name = ".".join(domain)
             if name.startswith(".."): 
                 name = name[2:]
             elif name.startswith("."): 
                 name = name[1:]
+                
         if name in mapping:
+            # Grab other relevant information, convert to Service
             category = mapping[name]['category']
             svc = Service(name, category=category, hits=hits) 
             svc.add_domain(domain)
             return svc
         else:
+            # Stays domain
             dom = Domain(name, hits=hits)
             dom.add_domain(domain)
             return dom
     
     def fromname(self, service_name):
-        """Returns a tuple of service  given a name, or False if nonexistent."""
+        """Returns a tuple of service given a name, or False if nonexistent."""
         try: 
             return self.service_names[service_name]
         except KeyError:

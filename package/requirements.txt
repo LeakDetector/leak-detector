@@ -1,5 +1,9 @@
-BeautifulSoup>=3.2.1
-requests>=2.0.1
-tldextract>=1.4
-simplejson
-geoip2
+BeautifulSoup==3.2.1
+enstaller==4.6.5
+geoip2==2.0.0
+ipaddr==2.1.11
+maxminddb==1.0.0
+requests==2.4.3
+simplejson==3.6.4
+tldextract==1.5.1
+wsgiref==0.1.2

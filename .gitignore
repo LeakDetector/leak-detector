@@ -56,14 +56,11 @@ DerivedData
 
 # bro
 .state
-
 *.log
-
 *.json
 *.db
 
 bro/todo.md
-
 dist
-
 package/leakdetector/includes/site-data/archived-dmoz.zip
+venv

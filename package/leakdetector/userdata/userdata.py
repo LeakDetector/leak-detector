@@ -5,7 +5,7 @@ from operator import itemgetter
 from collections import defaultdict
 
 import tldextract
-from ..utils import merge_dicts 
+from  utils import merge_dicts 
 
 class UserData(object):
     def __init__(self, data={}):
@@ -208,6 +208,7 @@ class Form(tuple):
     data = property(itemgetter(2))
     
 class Product(object): 
+    """Container for product information."""
     def __init__(self, name, price=None, description=None, vendor=None, image=None):
         self.name = name
         self.price = price

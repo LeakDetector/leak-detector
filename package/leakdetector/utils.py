@@ -62,7 +62,7 @@ def merge_dicts(x, y):
     return dict(chain(x.iteritems(), y.iteritems()))
     
 def class_register(cls):
-    """Class wrapper for registry."""
+    """Class wrapper for registry. Allows for in-class decorating."""
     cls._analyses = defaultdict(list)
     for methodname in dir(cls):
         method = getattr(cls,methodname)
@@ -80,9 +80,9 @@ def register(order):
     return wrapper
     
 def allwith(l, attr, display=None):
-    """Return all objects with attribute `attr` in list l, optionally
+    """
+    Return all objects with attribute `attr` in list l, optionally
     displaying selected attributes listed in `display`.
-    
     """
     with_attr = [i for i in l if hasattr(i, attr)]
     if display:
@@ -94,28 +94,39 @@ def allwith(l, attr, display=None):
 def findformdata(dlist, key, exact=True, limit=None):
     from userdata import userdata
     
-    """Extracts form data values from a list of domains. 
+    """
+    Extracts form data values from a list of domains. 
     
     The `limit` kwarg optionally takes a function that returns True given a domain,
     which allows limiting searches to certain domains or attributes.
     """
+    # If we don't limit to certain attributes, use a dummy function.
     if not limit: limit = lambda v: True
     
     findings = defaultdict(list)
+    
     for domain in dlist:
+        # If the class is correct and form data is present
         if issubclass(type(domain), userdata.Service) and limit(domain) and hasattr(domain, 'formdata'):
             if exact:
+                # Look for an exact match
                 found = [key in f.data for f in domain.formdata]
                 if any(found): 
+                    # Exact match found -> grab indexes of relevant data in the form data list
+                    # and add them to our findings
                     indexes = [i for i, v in enumerate(found) if v == True]
                     for i in indexes:
                         findings[key].append(domain.formdata[i].data[key])
             else:
+                # If we're okay with fuzzy matches, run a `key in ...` search
                 found = [ map(lambda k: key in k, keys) for keys in [f.data.keys() for f in domain.formdata]]
                 for i, formfound in enumerate(found):
+                    # If fuzzy match exists
                     if any(formfound):
+                        # Grab the indexes of those matches
                         indexes = [j for j, v in enumerate(formfound) if v == True]
                         for idx in indexes:
+                            # Loop through those indexes (which are of keys) and grab the data
                             thisdata = domain.formdata[i].data
                             thiskey = thisdata.keys()[idx]
                             data = thisdata[thiskey]

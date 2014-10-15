@@ -4,8 +4,9 @@ try:
 except:
     import pickle   
 
-    
-# Extract form data using autofill data... in progress.
+# TODO: Implement form data reader to find personal information based on
+# TODO: autofill heuristics.
+
 class ExtractFormdata(object):
     def __init__(self, regexes):
         with open(regexes) as f: self.regexes = pickle.load(f)
