@@ -66,15 +66,17 @@ def analyze_logs(log_dir, _filter=None, outfile=None):
 
 def run_bro(bro_args, logdir, stdout=False):
     def stdout_communicate(proc):
-        for line in bro_proc.stderr:
+        for line in iter(proc.stderr.readline,''):
+            time.sleep(1)
             try:
-                stdout.put(line)
+                stdout.put(line.rstrip())
             except IOError:
                 continue    
         
     """Run the bro process with arguments `bro_args`, storing logs in `logdir`."""
     global bro_proc
-        
+    global log_proc
+    
     # Get absolute paths to our custom bro scripts
     bro_scripts = ''
     for script in BRO_SCRIPTS:
@@ -97,16 +99,18 @@ def run_bro(bro_args, logdir, stdout=False):
     else:
         bro_proc = subprocess.Popen(brocmd.split())
         
-    bro_proc.wait()
-
     # change back to original dir
     logging.getLogger(__name__).debug('Switching back to dir: %s', origdir)
     os.chdir(origdir)
+    bro_proc.wait()
 
 def main(interface, outfile=None, tracefile=None, _filter=None, logdir=None, verbose=False, stdout=False):
     """Main function to run from command line."""
     def kill_handler(signum, frame): 
         """Kill bro."""
+        global bro_proc
+        global log_proc
+
         if bro_proc:
             bro_proc.terminate()
 
@@ -121,8 +125,7 @@ def main(interface, outfile=None, tracefile=None, _filter=None, logdir=None, ver
 
     # Set up signal handlers
     signal.signal(signal.SIGTERM, kill_handler)
-    if stdout:
-        signal.signal(signal.SIGINT, kill_handler)
+    signal.signal(signal.SIGINT, kill_handler)
 
     # Set up logging
     logging.basicConfig(
@@ -153,31 +156,3 @@ def main(interface, outfile=None, tracefile=None, _filter=None, logdir=None, ver
         logging.getLogger(__name__).warn('Must provide either a packet trace, an interface to sniff, or a directory of existing Bro logs.')
         sys.exit()
     
-    analyze_logs(logdir, _filter=_filter, outfile=outfile)
-
-    # remove bro log temp dir
-    if not logdir:
-        utils.remove_temp_dir('bro_logs')
-
-def commandline():
-    """Command line entry point to run leak detector."""
-    
-    global args
-    # set up command line args
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,\
-                        description='Analyze network traffic for leaked information')
-    parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Print extra information for debugging.')
-    parser.add_argument('-o', '--outfile', default=None, help='Save output JSON to a file instead of printing to terminal.')
-    parser.add_argument('-r', '--tracefile', default=None, help='Analyze existing trace (PCAP file) instead of live traffic.')
-    parser.add_argument('-f', '--filter', default=None, help='A CSV string of keys to include in the output. (Useful to limit output to subset of keys you care about.)')
-    parser.add_argument('-l', '--logdir', default=None, help='Use the specified directory to store/read bro logs.')
-    parser.add_argument('-i', '--interface', default='en1', help='Name of interface to sniff (use "ifconfig" to see options).')
-    args = parser.parse_args()
-
- 
-    # Run
-    main(args.interface, outfile=args.outfile, tracefile=args.tracefile, _filter=args.filter, logdir=args.logdir, verbose=args.verbose)
-
-if __name__ == '__main__':
-    commandline()
-
