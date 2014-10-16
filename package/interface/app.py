@@ -5,7 +5,7 @@ import sys
 import os.path
 
 from multiprocessing import Process, Value
-from utils import *
+from multiprocessing.queues import Queue
 from flask import Flask, render_template, request, Response
 
 import leakdetector as ld
@@ -13,10 +13,12 @@ import leakdetector as ld
 app = Flask(__name__)
 app.config.update(dict(
     session = False,
-    ld_out = StdoutQueue()
+    ld_out = Queue()
 )) 
         
 def ld_run(q, iface, outfile):
+    while not q.empty(): q.get() # Flush queue
+
     outfile = os.path.join(os.getcwd(), "static", "traces", outfile)
     ld.run.main(iface, outfile=outfile, stdout=q)
 
@@ -30,10 +32,11 @@ def record():
     action = request.form['action']
     
     if action == "start":
+        
         if not app.config['session']:
             iface, fn = request.form['interface'], request.form['fn']
             print "Starting leak detector on %s, recording to %s." % ( iface, fn )
-
+            
             app.config['session'] = Process(target=ld_run, args=(app.config['ld_out'], iface, fn))
             app.config['session'].start()
             
@@ -60,7 +63,7 @@ def status():
     else:
         lines = []
         while not app.config['ld_out'].empty():
-            line = app.config['ld_out']
+            line = app.config['ld_out'].get()
             if line: lines.append(line)
         resp = {'stdout': lines}
         

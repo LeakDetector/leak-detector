@@ -35,12 +35,15 @@
 	<a class="close-reveal-modal">&#215;</a>
 </div>	
 
-<div id="recording-modal" class="reveal-modal" data-reveal data-options="close_on_background_click:false">
+<div id="recording-modal" class="reveal-modal" data-reveal data-options="close_on_background_click:false;close_on_esc:false;">
 	<h2>Recording network traffic</h2>
+	<p>Leak Detector says:</p>
 	<div id="stdout"></div>
-	<p><img src="{{url_for('static', filename='img/ajax-loader.gif')}}" title="Recording..." /></p>
-	<p id="message"></p>
-	<p><a href="#" id="stop-recording" class="button">Finish Recording</a></p>
+	<div class="when-active">
+		<p><img src="{{url_for('static', filename='img/ajax-loader.gif')}}" title="Recording..." /></p>
+		<p id="message"></p>
+		<p><a href="#" id="stop-recording" class="button">Finish Recording</a></p>
+	</div>	
 </div>	
 
 {% endblock %}
@@ -84,7 +87,7 @@
 		var stopArgs = {'action': REC_STOP};
 		$.post("/record", stopArgs, function(data){
 			if ( data.action == REC_STOP ) {
-				ui_stop(data.info);
+				ui_stop();
 			} else if ( data.search(ERR) != -1 ) {
 				var error = data.split(ERR + " ")[1];
 				ui_error(error);
@@ -92,22 +95,27 @@
 		});
 	});
 	
+	function updateData() {
+		$.getJSON('/proc-status', function(data) {
+			$.each(data.stdout, function(i, l){
+				$("#stdout").append("<span>" + l + "</span><br/>");
+			});
+		});
+	}
+	
 	function ui_start() {
 		recording = true;
 		$("#recording-modal").foundation('reveal', 'open');
 		$("#recording-modal p#message").html("Currently recording network traffic from <span>" + iface + "</span>.");
-		stdoutTimer = setInterval(function(){
-			$.getJSON('/proc-status', function(data) {
-				$.each(data.stdout, function(l){
-					$("#stdout").append("<span>" + l + "</span><br/>");
-				});
-			});
-		}, 15000);
+		setTimeout(updateData, 5000);
 	}
 	
-	function ui_stop(info) {
-		recording = false;
-		$("#recording-modal").html("<p>" + info + "</p>" + "<a class='close-reveal-modal'>&#215;</a>");
+	function ui_stop() {
+		recording = false;		
+		$(".when-active").slideUp(400);
+		$("#recording-modal h2").html("Finished recording")
+		$("#recording-modal").append("<a class='close-reveal-modal button'>&#215; Close</a>");
+		setTimeout(updateData, 3000);
 	}
 	
 	function ui_error(message) {
@@ -122,16 +130,4 @@
 		}
 	})
 </script>
-{# post "start" token to /record #}
-{# 	if we're good #}
-{# 		grey out the screen #}
-{# 		display stop button and timer #}
-{# 			if stop button is pressed #}
-{# 				post "stop" token to record #}
-{# 				if we're good #}
-{# 					redirect to page which has names of traces to analyze #}
-{# 				else #}
-{# 					error #}
-{# 	else #}
-{# 		display error #}
 {% endblock %}
