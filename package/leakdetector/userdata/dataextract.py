@@ -3,8 +3,8 @@ import re
 
 # Leak detector specific
 import productinfo
-from config import analysis
-from utils import findformdata
+from ..config import analysis
+from ..utils import findformdata
 
 class ExtractSiteStructuredData(object):
     """Base class for all extractors."""

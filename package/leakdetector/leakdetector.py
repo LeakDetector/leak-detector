@@ -7,6 +7,7 @@ import logging
 import argparse
 import utils
 import subprocess
+import multiprocessing
 import signal
 import glob
 
@@ -63,10 +64,17 @@ def analyze_logs(log_dir, _filter=None, outfile=None):
     else:
         print userdata
 
-def run_bro(bro_args, logdir):
+def run_bro(bro_args, logdir, stdout=False):
+    def stdout_communicate(proc):
+        for line in bro_proc.stderr:
+            try:
+                stdout.put(line)
+            except IOError:
+                continue    
+        
     """Run the bro process with arguments `bro_args`, storing logs in `logdir`."""
     global bro_proc
-
+        
     # Get absolute paths to our custom bro scripts
     bro_scripts = ''
     for script in BRO_SCRIPTS:
@@ -81,29 +89,40 @@ def run_bro(bro_args, logdir):
     brocmd = '%s %s %s' % (BRO, bro_args, bro_scripts)
     logging.getLogger(__name__).debug('Running bro in temp dir: %s', logdir)
     logging.getLogger(__name__).debug(brocmd)
-    bro_proc = subprocess.Popen(brocmd.split())
+    
+    if stdout:
+        # Pipe bro output up to interface
+        bro_proc = subprocess.Popen(brocmd.split(), stderr=subprocess.PIPE)
+        log_proc = multiprocessing.Process(target=stdout_communicate, args=(bro_proc,)).start()
+    else:
+        bro_proc = subprocess.Popen(brocmd.split())
+        
     bro_proc.wait()
-    #utils.check_output(brocmd)
 
     # change back to original dir
     logging.getLogger(__name__).debug('Switching back to dir: %s', origdir)
     os.chdir(origdir)
 
-
-def kill_handler(signum, frame): 
-    """Kill bro."""
-    if bro_proc:
-        bro_proc.terminate()
-
-def main(interface, outfile=None, tracefile=None, _filter=None, logdir=None, verbose=False):
+def main(interface, outfile=None, tracefile=None, _filter=None, logdir=None, verbose=False, stdout=False):
     """Main function to run from command line."""
-    
+    def kill_handler(signum, frame): 
+        """Kill bro."""
+        if bro_proc:
+            bro_proc.terminate()
+
+        analyze_logs(logdir, _filter=_filter, outfile=outfile)
+
+        # remove bro log temp dir
+        if not logdir:
+            utils.remove_temp_dir('bro_logs')
+
     if tracefile:
         tracefile = os.path.abspath(tracefile)
 
     # Set up signal handlers
     signal.signal(signal.SIGTERM, kill_handler)
-    signal.signal(signal.SIGINT, kill_handler)
+    if stdout:
+        signal.signal(signal.SIGINT, kill_handler)
 
     # Set up logging
     logging.basicConfig(
@@ -111,7 +130,6 @@ def main(interface, outfile=None, tracefile=None, _filter=None, logdir=None, ver
         level = logging.DEBUG if verbose else logging.WARNING
     )    
     
-
     # make a temp dir for bro logs if none was specified
     if not logdir:
         utils.init_temp_dir('bro_logs')
@@ -123,18 +141,12 @@ def main(interface, outfile=None, tracefile=None, _filter=None, logdir=None, ver
             except Exception as e:
                 logging.getLogger(__name__).error('Error creating logdir %s: %s', logdir, e)
 
-    # leakdetector runs in one of three modes:
-    # 1) run bro on a pcap trace and analyze the resulting logs
-    # 2) run bro on live traffic and analyze the resulting logs
-    # 3) analyze existing bro log files
-    # TODO: interface has a default....
-    
     if tracefile:
         logging.getLogger(__name__).info('Analyzing trace: %s', tracefile)
-        run_bro('-r %s' % (tracefile), logdir)
+        run_bro('-r %s' % (tracefile), logdir, stdout=stdout)
     elif interface:
         logging.getLogger(__name__).info('Analyzing traffic on %s', interface)
-        run_bro('-i %s' % (interface), logdir)
+        run_bro('-i %s' % (interface), logdir, stdout=stdout)
     elif logdir:
         logging.getLogger(__name__).info('Analyzing Bro logs in %s', logdir)
     else:

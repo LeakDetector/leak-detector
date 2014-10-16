@@ -1,0 +1,24 @@
+<!doctype html>
+<html class="no-js" lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Leak Detector</title>
+	<link rel="stylesheet" href="{{url_for('static', filename='css/foundation.css')}}" />
+	<script src="{{url_for('static', filename='js/vendor/modernizr.js')}}"></script>
+	<style type="text/css" media="screen">
+		label.iface { font: 1.05em monospace;}
+		.reveal-modal-bg { background: rgba(0,0,0,0.8);}
+		#stdout { background: #E7E7E7; padding: 0.5em; font-family: monospace; }
+	</style>
+</head>
+<body>
+	{% block content %}
+	{% endblock %}
+	<script src="{{url_for('static', filename='js/vendor/jquery.js')}}"></script>
+	<script src="{{url_for('static', filename='js/foundation.min.js')}}"></script>
+	<script>$(document).foundation();</script>
+	{% block extrajs %}
+	{% endblock %}
+</body>
+</html>

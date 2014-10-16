@@ -1,4 +1,4 @@
-from userdata.userdata import Service
+from ..userdata.userdata import Service
 
 # Just a place to store the mappings right now. 
 # For the future, I'll probably make this JSON or something and autogenerate the mapping to classes.
