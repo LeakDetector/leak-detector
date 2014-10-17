@@ -3,10 +3,11 @@ import netifaces
 import json
 import sys
 import os.path
+import glob
 
 from multiprocessing import Process, Value
 from multiprocessing.queues import Queue
-from flask import Flask, render_template, request, Response
+from flask import Flask, render_template, request, Response, url_for, redirect
 
 import leakdetector as ld
 
@@ -21,6 +22,11 @@ def ld_run(q, iface, outfile):
 
     outfile = os.path.join(os.getcwd(), "static", "traces", outfile)
     ld.run.main(iface, outfile=outfile, stdout=q)
+    
+def analyze_run(fn):
+    infile = os.path.join(os.getcwd(), "static", "traces", fn)
+    outfile = os.path.join(os.getcwd(), "static", "analysis", "analyzed-%s" % fn)
+    ld.analyze.main(infile, outfile, True)
 
 @app.route('/')
 def home():
@@ -69,13 +75,24 @@ def status():
         
     return Response(json.dumps(resp), mimetype='text/json')
 
-@app.route('/analyze', methods=['GET', 'POST'])    
-def analyze():
-    pass
-    
-@app.route('/display')
-def display():
-    pass
+@app.route('/list')    
+def listfiles():
+    traces = {
+        'raw': map(os.path.basename, glob.glob('static/traces/*.json')),
+        'processed': map(os.path.basename, glob.glob('static/analysis/*.json'))
+    }
+    return render_template('analyze.html', traces=traces)
+        
+@app.route('/analyze/<fn>')
+def analyze(fn):
+    outfn = os.path.join(os.getcwd(), "static", "analysis", "analyzed-%s"%fn)
+    if not os.path.exists(outfn):
+        analyze_run(fn)
+    return redirect(url_for('display', fn="analyzed-%s"%fn))
+        
+@app.route('/display/<fn>')
+def display(fn):
+    return "Displaying %s" % fn
     
 if __name__ == '__main__':
     app.run(debug=True)    

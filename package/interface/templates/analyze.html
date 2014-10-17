@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">	
+	<div class="small-12 columns">
+		<h2>Recorded Sessions</h2>
+		{% if traces.raw %}
+			<ul>
+			{% for t in traces.raw %}
+				<li>{{t}} (<a href="{{url_for('static', filename='traces/'+t)}}">get file</a>) (<a href="{{url_for('analyze', fn=t)}}">view analysis</a>)</li>
+			{% endfor %}	
+			</ul>
+		{% else %}	
+			<p>No recorded traces.</p>
+		{% endif %}
+	</div>
+{% endblock %}
