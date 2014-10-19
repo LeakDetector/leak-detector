@@ -30,10 +30,12 @@ def formatDomain(site):
     output = []
     
     mainInfo = (site['name'], ".".join(site['domains'][0]), site['hits'])
-    category = " > ".join(site['category']).replace("_", " ") if type(site['category']) is list else site['category']
     output.append("* %s [%s] -  %s request(s)" % mainInfo)
-    if "World" not in category:
-        output.append("\t * In category: %s" % urllib.unquote(category))
+
+    if site.get('category'):
+        if "World" not in site.get('category'):
+            category = " > ".join(site['category']).replace("_", " ") if type(site['category']) is list else site['category']
+            output.append("\t * In category: %s" % urllib.unquote(category))
 
     if site.get('prev_visit'):
         output.append("\t * Last visited by you on %s" % site.get('prev_visit'))
@@ -107,7 +109,7 @@ def parse(jsonfile):
             output.append("* Here are some pages you visited: %s" % bullets(titles))
             
         if analysis['history'].get('domains'):
-            domains = [site for site in analysis['history']['domains'] if site['category'] is not None]
+            domains = [site for site in analysis['history']['domains']]
             output.append("* Here are some sites that you (or your browser) visited: ")
     
             for site in domains:
@@ -128,7 +130,8 @@ def parse(jsonfile):
             output.append("* Some phone numbers on pages you viewed: %s" % bullets(phones) )
         
         if analysis['personal-info'].get('personal-email'):
-            output.append("* Emails on pages you viewed: %s" % formatList(analysis['personal-info']['personal-email']) )
+            emails = [text for user, domain, text in analysis['personal-info']['personal-email']]
+            output.append("* Personal email addresses on pages you viewed: %s" % bullets(emails))
             
     if analysis.get('email-activity'):
         output.append(header("Other information"))
