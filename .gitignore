@@ -1,5 +1,6 @@
 .DS_Store
 traces
+interface 
 *.py[cod]
 # C extensions
 *.so

@@ -1,8 +1,8 @@
-import leakdetector
+import leakdetector.leakdetector as ld
 import argparse
 import os
 
-def commandline():
+if __name__ == '__main__':
     """Command line entry point to run leak detector."""
     
     # set up command line args
@@ -23,7 +23,4 @@ def commandline():
         outfile = args.outfile    
         
     # Run
-    leakdetector.run.main(args.interface, outfile=outfile, tracefile=args.tracefile, _filter=args.filter, logdir=args.logdir, verbose=args.verbose)
-
-if __name__ == '__main__':
-    commandline()
+    ld.main(args.interface, outfile=outfile, tracefile=args.tracefile, _filter=args.filter, logdir=args.logdir, verbose=args.verbose)

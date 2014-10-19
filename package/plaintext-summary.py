@@ -3,28 +3,37 @@ import random
 import urllib
 
 def formatList(l):
+    """Join a list of with commas."""
+    
     if l:
         return ", ".join(l)
     else:
         return "no info"
         
 def bullets(l):
+    """Add bullets to lines of text."""
+    
     output = "\n"
     for item in l:
         output += "\t* %s\n" % item 
     
     return output
     
-def indent(l, level=1):
-    return ["%s%s" % ("\t"*level, line) for line in l]
+def indent(l, n=1):
+    """Add `n` tabs to the beginning of each line."""
+    
+    return ["%s%s" % ("\t"*n, line) for line in l]
     
 def formatDomain(site):
+    """Create a block text given the dictionary for a certain domain."""
+    
     output = []
     
     mainInfo = (site['name'], ".".join(site['domains'][0]), site['hits'])
     category = " > ".join(site['category']).replace("_", " ") if type(site['category']) is list else site['category']
     output.append("* %s [%s] -  %s request(s)" % mainInfo)
-    output.append("\t * In category: %s" % urllib.unquote(category))
+    if "World" not in category:
+        output.append("\t * In category: %s" % urllib.unquote(category))
 
     if site.get('prev_visit'):
         output.append("\t * Last visited by you on %s" % site.get('prev_visit'))
@@ -56,12 +65,18 @@ def formatDomain(site):
     return output
     
 def domainStat(section, key):
+    """Return the number of dictionaries with `key` in a list of dictionaries `section`."""
+    
     return len([site for site in section if site.get(key)])
 
 def header(name):
+    """Return a markdown header."""
+    
     return "\n%s\n%s\n" % (name, "="*len(name))
 
 def parse(jsonfile):        
+    
+    # Open and read the file
     if type(jsonfile) is not file:
         with open(jsonfile) as f:
             analysis = json.load(f)
@@ -70,6 +85,7 @@ def parse(jsonfile):
 
     output = []
     
+    ## System info
     if analysis.get('system'):
         # System info
         browsers = analysis['system'].get('browser')
@@ -81,10 +97,10 @@ def parse(jsonfile):
         output.append("* Operating system: %s" % formatList(os))
         output.append("* Your location: %s" % formatList(location))
     
-    # Web history
+    ## Web history
     if analysis.get('history'):
         output.append(header("Web history"))
-        
+
         if analysis['history'].get('page-titles'):
             titles = [urllib.unquote(t) for t in analysis['history']['page-titles'] if len(t) > 15 and "document.title" not in t]
             titles = random.sample(titles, len(titles)/2)
@@ -99,8 +115,10 @@ def parse(jsonfile):
     
     if analysis.get('services'):        
         for site in analysis['services']:
-            [output.append(line) for line in formatDomain(site)]
-            
+            [output.append(line) for line in indent(formatDomain(site))]
+    
+    ## Emails, phone numbers
+    
     if analysis.get('personal-info'):
         output.append(header("Contact information"))
         
@@ -118,15 +136,18 @@ def parse(jsonfile):
         if analysis.get('email-activity'):
             output.append("* Email activity: %s" % analysis['email-activity'])
             
+    ## Statistics
 
     output.append(header("Summary statistics:"))
     
+    domainstats = ("No", "No")
     if analysis['history'].get('domains'):
         n_domains = len(analysis['history']['domains'])
     if analysis['history'].get('page-titles'):
         n_titles = len(analysis['history']['page-titles'])
         
-    domainstats = ("no" or n_domains, "no" or n_titles)
+    
+    domainstats = (n_domains, n_titles)
     output.append("\t * %s domains visited - %s page titles captured" % domainstats)
     
     n_pb = domainStat(analysis['history']['domains'], 'maybe_private_browsing')
@@ -137,18 +158,23 @@ def parse(jsonfile):
     output.append("\t * %s private browsing requests, %s sites with HTTPS, %s sites with trackers" % (n_pb, n_https, n_tracking))
     output.append("\t * %s forms captured" % n_form)
         
-    return "\n".join(output)
+    ## Return text block    
+    return "\n".join(output).encode('utf-8')
     
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,\
                         description='Display Leak Detector results as plain text.')
 
-    parser.add_argument('-i', metavar="in-file", type=argparse.FileType('r'), required=True)
-    try: 
+    parser.add_argument('i', metavar="analyzedfile")
+    
+    try:
+        # Parse and print the file
         args = parser.parse_args()
         print parse(args.i)
     except IOError, msg:
-        parser.error(str(msg))    
+        # Or print what went wrong
+        parser.error(str(msg))
+
 
         
