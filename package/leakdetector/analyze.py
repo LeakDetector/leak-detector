@@ -210,7 +210,7 @@ class LeakResults(object):
             self.logger.info("Geolocating IP address.")
             try: 
                 self.temp['location'] = self.map.geolocate(self.leaks['device-ip'])
-            except AddressNotFoundError:
+            except Exception:
                 self.temp['location'] = "Unknown"
 
     @register(2)
@@ -567,8 +567,9 @@ class LeakResults(object):
             'services': [svc for svc in combined if type(svc) == Service],
             'history': {'domains': [dom for dom in combined if type(dom) == Domain],
                         'page-titles': self.finished.get('html-titles')},
-            'private-browsing': self.finished.get('private-browsing'),
+#            'private-browsing': self.finished.get('private-browsing'),
             'email': {k:self.finished[k] for k in self.available_keys('email')},
+            'email-actvitiy': [self.leaks.get('email-activity'), self.leaks.get('email-activity-generic')],
             'files': {k:self.finished[k] for k in self.available_keys('files')},
             'system': {k:self.finished[k] for k in self.available_keys('system')},
             'personal-info': {k:self.finished[k] for k in self.available_keys('personal-info')}
