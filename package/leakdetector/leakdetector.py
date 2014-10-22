@@ -75,7 +75,7 @@ class LiveLogAnalyzer(ThreadStop):
         userdata = UserData()
         while self.runningFlag.isSet():
             time.sleep(self.analyze_interval)
-            analyze_logs(self.log_dir, userdata)
+            analyze_logs(self.log_dir, userdata=userdata)
 
 def run_bro(bro_args, logdir):
     """Run the bro process with arguments `bro_args`, storing logs in `logdir`."""
@@ -96,20 +96,14 @@ def run_bro(bro_args, logdir):
     brocmd = '%s %s %s' % (BRO, bro_args, bro_scripts)
     logging.getLogger(__name__).debug('Running bro in temp dir: %s', logdir)
     logging.getLogger(__name__).debug(brocmd)
-    
-    if stdout:
-        # Pipe bro output up to interface
-        bro_proc = subprocess.Popen(brocmd.split(), stderr=subprocess.PIPE)
-        log_proc = multiprocessing.Process(target=stdout_communicate, args=(bro_proc,)).start()
-    else:
-        bro_proc = subprocess.Popen(brocmd.split())
+    bro_proc = subprocess.Popen(brocmd.split())
         
     # change back to original dir
     logging.getLogger(__name__).debug('Switching back to dir: %s', origdir)
     os.chdir(origdir)
     bro_proc.wait()
 
-def main(interface, outfile=None, tracefile=None, _filter=None, logdir=None, verbose=False, stdout=False):
+def main(interface, outfile=None, tracefile=None, analyzeinterval=None, _filter=None, logdir=None, verbose=False, stdout=False):
     """Main function to run from command line."""
     def kill_handler(signum, frame): 
         """Kill bro."""
@@ -154,9 +148,9 @@ def main(interface, outfile=None, tracefile=None, _filter=None, logdir=None, ver
         analyze_logs(logdir)
     elif interface:
         logging.getLogger(__name__).info('Analyzing traffic on %s', interface)
-        analyze_thread = LiveLogAnalyzer(logdir, args.analyzeinterval)
+        analyze_thread = LiveLogAnalyzer(logdir, analyzeinterval)
         analyze_thread.start()
-        run_bro('-i %s' % (args.interface), logdir)
+        run_bro('-i %s' % (interface), logdir)
         analyze_thread.stop()
     elif logdir:
         logging.getLogger(__name__).info('Analyzing Bro logs in %s', logdir)
