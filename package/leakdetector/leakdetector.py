@@ -15,6 +15,7 @@ import glob
 from userdata.userdata import UserData
 from utils import ThreadStop
 import parsers
+import analyze
 
 # Get absolute script path for includes
 try:
@@ -66,16 +67,18 @@ def analyze_logs(log_dir, _filter=None, outfile=None, userdata=None):
         print userdata
 
 class LiveLogAnalyzer(ThreadStop):
-    def __init__(self, log_dir, analyze_interval):
+    def __init__(self, log_dir, analyze_interval, outfile):
         self.log_dir = log_dir
         self.analyze_interval = analyze_interval
+        self.outfile = outfile
         super(LiveLogAnalyzer, self).__init__()
 
     def run(self):
         userdata = UserData()
         while self.runningFlag.isSet():
             time.sleep(self.analyze_interval)
-            analyze_logs(self.log_dir, userdata=userdata)
+            analyze_logs(self.log_dir, userdata=userdata, outfile=self.outfile)
+            analyze.main(self.outfile, "%s.analyzed"%self.outfile)           
 
 def run_bro(bro_args, logdir):
     """Run the bro process with arguments `bro_args`, storing logs in `logdir`."""
@@ -148,7 +151,7 @@ def main(interface, outfile=None, tracefile=None, analyzeinterval=None, _filter=
         analyze_logs(logdir)
     elif interface:
         logging.getLogger(__name__).info('Analyzing traffic on %s', interface)
-        analyze_thread = LiveLogAnalyzer(logdir, analyzeinterval)
+        analyze_thread = LiveLogAnalyzer(logdir, analyzeinterval, outfile)
         analyze_thread.start()
         run_bro('-i %s' % (interface), logdir)
         analyze_thread.stop()

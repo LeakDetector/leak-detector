@@ -569,7 +569,7 @@ class LeakResults(object):
                         'page-titles': self.finished.get('html-titles')},
 #            'private-browsing': self.finished.get('private-browsing'),
             'email': {k:self.finished[k] for k in self.available_keys('email')},
-            'email-actvitiy': [self.leaks.get('email-activity'), self.leaks.get('email-activity-generic')],
+            'email-activity': [self.leaks.get('email-activity'), self.leaks.get('email-activity-generic')],
             'files': {k:self.finished[k] for k in self.available_keys('files')},
             'system': {k:self.finished[k] for k in self.available_keys('system')},
             'personal-info': {k:self.finished[k] for k in self.available_keys('personal-info')}
@@ -596,7 +596,7 @@ class LeakResults(object):
                 
     merge_processed = staticmethod(merge_processed)    
 
-def main(infile, outfile, verbose):
+def main(infile, outfile, verbose=False):
     """Run analysis framework."""
     
     # Set logging verbosity
@@ -605,13 +605,18 @@ def main(infile, outfile, verbose):
     else:
         logging.basicConfig(level=logging.INFO)    
         
+    # just stop if it's empty
+    with open(infile) as f: 
+        if not len(json.load(f)): 
+            return
+            
     # Instantiate class around file to be processed.
     leaks = LeakResults(infile)
     # Analyze
     leaks.analyze()
     # Export
     leaks.export(outfile)
-
+    
 def commandline():
     """Command line entry point to run the script. Displays arguments."""
     
