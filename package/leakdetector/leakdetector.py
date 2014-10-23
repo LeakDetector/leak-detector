@@ -74,10 +74,9 @@ class LiveLogAnalyzer(ThreadStop):
         super(LiveLogAnalyzer, self).__init__()
 
     def run(self):
-        userdata = UserData()
         while self.runningFlag.isSet():
             time.sleep(self.analyze_interval)
-            analyze_logs(self.log_dir, userdata=userdata, outfile=self.outfile)
+            analyze_logs(self.log_dir, outfile=self.outfile)
             analyze.main(self.outfile, "%s.analyzed"%self.outfile)           
 
 def run_bro(bro_args, logdir):

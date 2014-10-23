@@ -37,7 +37,7 @@ extractors = {
         'scope': 'ebay.com', 
         'regex': re.compile(r'/itm/(.+)/([0-9]{12})'), 
         'attribute': 'products',
-        'further': productinfo.Ebay(apis.EBAY_API_KEY)},
+        'further': productinfo.Ebay(apis.EBAY_API_KEY).idlookup},
     "amazon": 
         {'type': 'regex',
         'scope': 'amazon.com',   

@@ -616,23 +616,4 @@ def main(infile, outfile, verbose=False):
     leaks.analyze()
     # Export
     leaks.export(outfile)
-    
-def commandline():
-    """Command line entry point to run the script. Displays arguments."""
-    
-    import argparse
-    
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,\
-                        description='Secondary analysis on exported Leak Detector traces.')
-    parser.add_argument('-v', '--verbose', action='store_true', default=False, help='Print extra information for debugging.')
-    parser.add_argument('input', metavar='TRACE', type=str, help='Input trace file to process.')
-    parser.add_argument('output', metavar='OUTPUT', type=str, help='Output file for display (JSON).')
-    args = parser.parse_args()
-    
-    main(args.input, args.output, args.verbose)
-    
-
-if __name__ == '__main__':
-    commandline()
-    
                 
