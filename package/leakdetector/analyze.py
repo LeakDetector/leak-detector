@@ -235,15 +235,12 @@ class LeakResults(object):
         self.logger.info('Processing web activity logs (2/2).')
         
         services_temp = {}
-        
         for k in self.available_keys('domains'):
             # Turn raw domains into services
             assert type(self.processed[k]) == Counter
             services_temp[k] = list()
             for domain, count in self.processed[k].items():
                 svc = self.map.fromdomain(domain, hits=count)
-                if 'https' in k: 
-                    svc.secure = True 
                 services_temp[k].append(svc)
 
         # Combine lists of services and duplicates
@@ -317,8 +314,21 @@ class LeakResults(object):
                     site.maybe_private_browsing = True
                     combined.append(site)
         
-        self.leaks['combined'] = combined           
+        # Tag HTTPS
+        if self.leaks.get('https-servers'):
+            for site in self.processed['https-servers']:
+                try:
+                    info = self.finditem(combined, site)
+                except:
+                    info = False    
+
+                if info:
+                    info.secure = True
+                else:
+                    site.secure = True
+                    combined.append(site)            
         
+        self.leaks['combined'] = combined           
 
     @register(6)
     @merge_processed
@@ -339,10 +349,10 @@ class LeakResults(object):
                     item.formdata.append(form)
                     
             # Process formdata with extractors
-            interesting_sites = list( set(f.host.registered_domain for f in self.temp['formdata']) &\
+            interesting_forms = list( set(f.host.registered_domain for f in self.temp['formdata']) &\
                                       set(ex.scope for ex in self.extractors.getall('form')) )
-
-            for site in interesting_sites:
+            
+            for site in interesting_forms:
                 extractor = self.extractors.get(site)
                 self.logger.debug("FORM %s" % extractor)
                 if extractor: extractor.process(self, self.leaks['combined'])
@@ -550,7 +560,7 @@ class LeakResults(object):
         #     and self.finditem(self.leaks['combined'], i.domains[0].domain, domains=True).category]
         
         # Remove irrelevant listings, DNS stuff
-        exclude_suffix = ['s3.amazonaws.com', 'googleapis.com', 'in-addr.arpa', '']
+        exclude_suffix = ['s3.amazonaws.com', 'googleapis.com', 'in-addr.arpa', '', 'rackcdn.com']
         exclude = [i for i in self.leaks['combined'] if i.domains[0].suffix in exclude_suffix]
         
         for dup in exclude: self.leaks['combined'].remove(dup)

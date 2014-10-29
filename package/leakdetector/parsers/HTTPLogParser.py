@@ -51,3 +51,11 @@ class HTTPLogParser(BroLogParser):
         # ip address
         if r['id.orig_h'] != '-': self.data['device-ip'] = r['id.orig_h']
         
+        host = r['host']
+        uri = r['uri']
+        
+        if host != "-" or uri != "-": 
+            self.data['http-queries'].add( (host,uri) )
+        
+        
+        

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import leakdetector.analyze
 import argparse
 import os

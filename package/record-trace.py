@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
 
 import leakdetector.leakdetector as ld
 import argparse
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--filter', default=None, help='A CSV string of keys to include in the output. (Useful to limit output to subset of keys you care about.)')
     parser.add_argument('-l', '--logdir', default=None, help='Use the specified directory to store/read bro logs.')
     parser.add_argument('-i', '--interface', default='en1', help='Name of interface to sniff (use "ifconfig" to see options).')
-    parser.add_argument('-t', '--analyzeinterval', type=int, default=5, help='When running in live mode, how often to analyze Bro logs? (seconds)')
+#   parser.add_argument('-t', '--analyzeinterval', type=int, default=5, help='When running in live mode, how often to analyze Bro logs? (seconds)')
     args = parser.parse_args()
     
     if args.outfile:
@@ -26,4 +26,4 @@ if __name__ == '__main__':
         outfile = args.outfile    
         
     # Run
-    ld.main(args.interface, outfile=outfile, tracefile=args.tracefile, analyzeinterval=args.analyzeinterval, _filter=args.filter, logdir=args.logdir, verbose=args.verbose)
+    ld.main(args.interface, outfile=outfile, tracefile=args.tracefile, _filter=args.filter, logdir=args.logdir, verbose=args.verbose)

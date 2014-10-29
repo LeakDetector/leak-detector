@@ -37,7 +37,7 @@ BRO_LOGS = {
     'ssl.log': parsers.SSLLogParser,
     'http_form.log': parsers.FormLogParser,
     'cookie.log': parsers.CookieLogParser,
-    'http_info.log': parsers.HTTPInfoLogParser,
+    # 'http_info.log': parsers.HTTPInfoLogParser,
     'smtp.log': parsers.SMTPLogParser
 }
 
@@ -150,13 +150,17 @@ def main(interface, outfile=None, tracefile=None, analyzeinterval=None, _filter=
         analyze_logs(logdir)
     elif interface:
         logging.getLogger(__name__).info('Analyzing traffic on %s', interface)
-        analyze_thread = LiveLogAnalyzer(logdir, analyzeinterval, outfile)
-        analyze_thread.start()
-        run_bro('-i %s' % (interface), logdir)
-        analyze_thread.stop()
+        if analyzeinterval:
+            analyze_thread = LiveLogAnalyzer(logdir, analyzeinterval, outfile)
+            analyze_thread.start()
+            run_bro('-i %s' % (interface), logdir)
+            analyze_thread.stop()
+        else:
+            run_bro('-i %s' % (interface), logdir)
+            analyze_logs(logdir, outfile=outfile)    
     elif logdir:
         logging.getLogger(__name__).info('Analyzing Bro logs in %s', logdir)
-        analyze_logs(logdir)
+        analyze_logs(logdir, outfile=outfile)
     else:
         logging.getLogger(__name__).warn('Must provide either a packet trace, an interface to sniff, or a directory of existing Bro logs.')
         sys.exit()
