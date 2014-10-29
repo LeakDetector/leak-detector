@@ -108,13 +108,12 @@ def parse(jsonfile, sections="all"):
             output.append(header("Web history"))
 
             if analysis['history'].get('page-titles'):
-                titles = [urllib.unquote(t) for t in analysis['history']['page-titles'] if len(t) > 15 and "document.title" not in t]
-                titles = random.sample(titles, len(titles)/2)
-                output.append("* Here are some pages you visited: %s" % bullets(titles))
+                titles = [urllib.unquote(t) for t in analysis['history']['page-titles'] if "document.title" not in t]
+                output.append("* Here are some pages you or your browser requested: %s" % bullets(titles))
             
             if analysis['history'].get('domains'):
                 domains = [site for site in analysis['history']['domains']]
-                output.append("* Here are some sites that you (or your browser) visited: ")
+                output.append("* Here are some sites that you (or your browser) requested: ")
     
                 for site in domains:
                     [output.append(line) for line in indent(formatDomain(site))]
@@ -180,10 +179,9 @@ def parse(jsonfile, sections="all"):
                 n_domains = len(analysis['history']['domains'])
             if analysis['history'].get('page-titles'):
                 n_titles = len(analysis['history']['page-titles'])
-        
-    
+            
             domainstats = (n_domains, n_titles)
-            output.append("\t * %s domains visited - %s page titles captured" % domainstats)
+            output.append("\t * %s domains requested - %s page titles captured" % domainstats)
     
             n_pb = domainStat(analysis['history']['domains'], 'maybe_private_browsing')
             n_https = domainStat(analysis['history']['domains'], 'secure')
@@ -194,7 +192,6 @@ def parse(jsonfile, sections="all"):
             output.append("\t * %s forms captured" % n_form)
         
             return output        
-        
         
     ## Return text block    
     if sections == "all":

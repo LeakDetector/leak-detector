@@ -98,6 +98,7 @@ def run_bro(bro_args, logdir):
     brocmd = '%s %s %s' % (BRO, bro_args, bro_scripts)
     logging.getLogger(__name__).debug('Running bro in temp dir: %s', logdir)
     logging.getLogger(__name__).debug(brocmd)
+    print brocmd
     bro_proc = subprocess.Popen(brocmd.split())
         
     # change back to original dir
@@ -119,7 +120,11 @@ def main(interface, outfile=None, tracefile=None, analyzeinterval=None, _filter=
         # remove bro log temp dir
         if not logdir:
             utils.remove_temp_dir('bro_logs')
-
+            
+        analyze_logs(logdir, outfile=outfile)
+        print "Analyzing captured network traffic (this may take a second...)"
+        analyze.main(outfile, "%s.analyzed"%outfile)           
+            
     if tracefile:
         tracefile = os.path.abspath(tracefile)
 
