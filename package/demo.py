@@ -31,4 +31,7 @@ if __name__ == '__main__':
     clear()
     ld.main(args.interface, outfile=outfile)
     clear()
-    print(summary.parse("%s.analyzed" % outfile))
+    try:
+        print(summary.parse("%s.analyzed" % outfile))
+    except:
+        print("Insufficient data was captured to print an analysis.")    
