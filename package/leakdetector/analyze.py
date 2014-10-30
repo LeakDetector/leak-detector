@@ -326,7 +326,11 @@ class LeakResults(object):
                     info.secure = True
                 elif not info and type(site) in [Domain, Service]:
                     site.secure = True
-                    combined.append(site)            
+                    combined.append(site)
+                elif not info and "tld" in str(type(site)):
+                    site = self.map.fromdomain(site)
+                    site.secure = True
+                    combined.append(site)
         
         self.leaks['combined'] = combined           
 
