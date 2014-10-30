@@ -31,7 +31,12 @@ if __name__ == '__main__':
     clear()
     ld.main(args.interface, outfile=outfile)
     clear()
-    try:
-        print(summary.parse("%s.analyzed" % outfile))
+    try:           
+        report = summary.parse("%s.analyzed" % outfile)
+        with open("%s.txt" % outfile, 'w') as f:
+            import pdb; pdb.set_trace()
+            f.write(report)
+        f.closed    
+        print(report)
     except:
         print("Insufficient data was captured to print an analysis.")    
