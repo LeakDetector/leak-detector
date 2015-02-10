@@ -1,6 +1,6 @@
 BeautifulSoup==3.2.1
 bottlenose==0.6.2
-enstaller==4.6.5
+jinja2
 geoip2==2.0.0
 ipaddr==2.1.11
 maxminddb==1.0.0

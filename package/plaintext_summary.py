@@ -108,7 +108,7 @@ def parse(jsonfile, sections="all"):
             output.append(header("Web history"))
 
             if analysis['history'].get('page-titles'):
-                titles = [urllib.unquote(t) for t in analysis['history']['page-titles'] if "document.title" not in t]
+                titles = [urllib.unquote(t) for t in analysis['history']['page-titles'] if "document.title" not in t and len(t) > 10]
                 output.append("* Here are some pages you or your browser requested: %s" % bullets(titles))
             
             if analysis['history'].get('domains'):
