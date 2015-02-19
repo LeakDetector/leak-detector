@@ -1,6 +1,9 @@
 import re
 from collections import namedtuple
 
+# This is left over from when we were going to have users enter pre-defined
+# keywords to search for in the network traffic stream. 
+
 class Keyword(object):
     nkeywords = 0
     

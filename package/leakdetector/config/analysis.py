@@ -22,10 +22,19 @@ relevant_keys = {
 
 # settings for _processqueries
 query_ignore_domains = ['fls-na', 'fls', 'files', 'img', 'images']
-query_keywords = ["q", "kwd", "search", "search_query", "find_desc", "st", "_nkw", "field-keywords", "utmdt"]
-                                            # youtube                       # ebay
+query_keywords = ["q", 
+                "kwd", 
+                "search", 
+                "search_query", # YouTube 
+                "find_desc", 
+                "st", 
+                "_nkw", # eBay 
+                "field-keywords",
+                "utmdt" # Google Analytics]
 
-# structured data extraction
+# Remove 'noisy' domains such as JS CDNs, 
+exclude_suffix = ['s3.amazonaws.com', 'googleapis.com', 'in-addr.arpa', '', 'rackcdn.com']
+
 extractors = {
     "wiki": 
         {'type': 'regex',
