@@ -1,7 +1,6 @@
 from ..userdata.userdata import Service
 
-# Just a place to store the mappings right now. 
-# For the future, I'll probably make this JSON or something and autogenerate the mapping to classes.
+# A manually generated start. 
 mapping = {
     'Facebook': {"category": "Social network"},
     'Google': {"category": "Search engine"},
@@ -15,7 +14,8 @@ mapping = {
     'Gmail': {"category": "Email"}
 }
 
-# A list of trace outputs relevant to different areas of interest.
+# A few basic examples for a method to translate various domains
+# and subdomains to one common, readable "owner".
 domainmap = {('fbcdn', 'facebook', 'fbstatic', 'fbexternal'): 'Facebook',
      ('googleusercontent',
       'google',

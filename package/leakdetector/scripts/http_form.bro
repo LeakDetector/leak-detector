@@ -1,16 +1,14 @@
-
 module http_form;
-
 
 export {
     redef enum Log::ID += { LOG };
 
     type Info: record {
-		ts:			time	&log;
-		host:		string	&log; 
-		uri:		string  &log;
-		formdata:	string	&log &optional;
-        };
+			ts:			time	&log;
+			host:		string	&log; 
+			uri:		string  &log;
+			formdata:	string	&log &optional;
+    };
 	
 }
 event bro_init()

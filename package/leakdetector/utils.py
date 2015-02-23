@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 import logging
+import threading
 
 from subprocess import Popen, PIPE, STDOUT, CalledProcessError
 from itertools import chain
@@ -133,3 +134,13 @@ def findformdata(dlist, key, exact=True, limit=None):
                             findings[thiskey].append(thisdata[thiskey])
 
     return findings                
+
+
+class ThreadStop(threading.Thread):
+    def __init__(self):
+        super(ThreadStop, self).__init__()
+        self.runningFlag = threading.Event()
+        self.runningFlag.set()
+
+    def stop(self):
+        self.runningFlag.clear()

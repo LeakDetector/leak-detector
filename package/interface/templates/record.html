@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+	<div class="small-12 columns">
+		<h1>Leak Detector</h1>
+		<p>To get started, record a network session and obtain network usage data.</p>
+	    <div class="row">
+	    	<div class="small-12 columns">
+				<label>Save this trace as...</label>
+			 	<input type="text" name="trace-name" value="{{defaultnm}}" id="trace-name">
+	    	</div>
+		</div>
+
+		<div class="row">
+			<div class="large-12 columns">
+				<label>Network Interface</label>
+				{% for iface in interfaces %}
+				<input type="radio" name="interface" value="{{iface}}" id="iface-{{iface}}"><label for="iface-{{iface}}" class="iface">{{iface}}</label>
+				{% else %}
+				<p>Error: no available network interfaces to record from.</p>
+				{% endfor %}
+			</div>
+		</div>
+		<div class="row">
+			<div class="small-12 columns">
+				<p><button id="start-recording" class="button">Start Recording</button></p>
+			</div>	
+		</div>	
+	</div>
+</div>	
+
+<div id="error-modal" class="reveal-modal" data-reveal>
+	<h2>Error</h2>
+	<p></p>
+	<a class="close-reveal-modal">&#215;</a>
+</div>	
+
+<div id="recording-modal" class="reveal-modal" data-reveal data-options="close_on_background_click:false;close_on_esc:false;">
+	<h2>Recording network traffic</h2>
+	<p>Leak Detector says:</p>
+	<div id="stdout"></div>
+	<div class="when-active">
+		<p><img src="{{url_for('static', filename='img/ajax-loader.gif')}}" title="Recording..." /></p>
+		<p id="message"></p>
+		<p><a href="#" id="stop-recording" class="button">Finish Recording</a></p>
+	</div>	
+</div>	
+
+{% endblock %}
+{% block extrajs %}
+<script type="text/javascript">
+	{% if config.session %}
+	recording = true;
+	{% else %}
+	recording = false;
+	{% endif %}
+</script>
+<script src="{{url_for('static', filename='js/app.record.js')}}" type="text/javascript" charset="utf-8"></script>
+{% endblock %}

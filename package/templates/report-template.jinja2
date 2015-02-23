@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="//cdn.jsdelivr.net/foundation/5.0.2/css/foundation.min.css">
+    <script src="//cdn.jsdelivr.net/foundation/5.0.2/js/vendor/custom.modernizr.js"></script>
+	<style type="text/css" media="screen">
+	.subsection.service, .subsection.domain { padding: 0.5em }
+	.item strong { margin-right: 0.5em;}
+	.service h3, .domains h3 { border-top: 1px solid #aaa; border-bottom: 1px solid #aaa; padding-top: 2px; padding-bottom: 2px; }
+	.service.item, .domains.item { display: inline; }
+	.item.domains { display: block; }
+	span.attached-domain, span.query {
+	padding: 5px;
+	background: #eee;
+	margin: 10px;
+	line-height: 2em;
+	}
+	</style>
+<!--	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <script src="//cdn.jsdelivr.net/foundation/5.0.2/js/foundation.min.js"></script>-->
+</head>
+<body>	
+	<h1 class="row">{{title}}</h1>
+	{% autoescape false %}
+	{% for category in report %}
+	<div class="row">
+		<div class="category {{category}}">
+			<h2>{{category.replace("-", " ")|title}}</h2>
+			{% if category == "services" %}
+				{% for service in report.services %}
+					{% if service['formdata'] %}
+					<div class="subsection service large-12 columns">
+					{% else %}	
+					<div class="subsection service large-6 columns">
+					{% endif %}
+						<h3>{{service['name']}}</h3>
+						{% for attribute in service %}
+						{% if attribute != 'name' and service[attribute] %}
+						<div class="item {{attribute}}">
+							<strong>{{attribute.replace("_", " ")|title}}</strong>
+							<span>{{pp(attribute, service[attribute])}}</span>
+						</div>
+						{% endif %}
+						{% endfor %}
+					</div>	
+				{% endfor %}
+			{% elif category == "history" %}
+				{% if report.history.domains %}
+				{% for service in report.history.domains %}
+					{% if service['formdata'] %}
+					<div class="subsection domains large-12 columns">
+					{% else %}	
+					<div class="subsection domains large-6 columns">
+					{% endif %}
+						<h3>{{service['name']}}</h3>
+					
+						{% for attribute in service %}
+						{% if attribute != 'name' and service[attribute] %}
+						<div class="item {{attribute}}">
+							<strong>{{attribute.replace("_", " ")|title}}</strong>
+							<span>{{pp(attribute, service[attribute])}}</span>
+						</div>
+						{% endif %}
+						{% endfor %}
+					</div>	
+				{% endfor %}
+				{% endif %}
+
+				{% if report['history']['page-titles'] %}
+					<div class="subsection page-titles large-12 columns">
+						<h3>Page titles</h3>
+						{% for title in report['history']['page-titles'] %}
+						<div class="item page-title"><span>{{title}}</span></div>
+						{% endfor %}
+					</div>	
+				{% endif %}		
+			{% else %}
+				{% for section in report[category] %}
+					{% if section %}
+					<div class="subsection {{section}} small-3 large-4 columns">
+						<h3>{{section}}</h3>
+						{% for item in report[category][section] %}
+						<div class="item {{category}} {{section}}"><span>{{pp(section, item)}}</span></div>
+						{% else %}
+						<div class="item {{category}} nodata">No data.</div>
+						{% endfor %}
+					</div>	
+					{% endif %}
+				{% endfor %}
+			{% endif %}
+		</div>	
+		</div>
+		{% endfor %}
+	{% endautoescape %}
+	</div>	
+</body>
+</html>	

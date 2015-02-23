@@ -96,7 +96,7 @@ def main():
         if finished:
             installed()
     else:
-        installed(x)
+        installed()
 
 
 if __name__ == '__main__':

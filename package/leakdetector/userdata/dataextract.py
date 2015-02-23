@@ -45,8 +45,7 @@ class SiteURIRegex(ExtractSiteStructuredData):
         
         if matches:
             # Grab the relevant extracted term
-            item = self.further(matches[0][1]) \
-                    if not type(matches[0][0]) is str else self.further(matches[0])
+            item = self.further(matches[0]) if type(matches) in [list, tuple] else self.further(matches)
             # Has that term been recorded on this domain yet?
             existing = parent.finditem(parent.leaks['combined'], self.scope)    
             if not hasattr(existing, self.attr): 

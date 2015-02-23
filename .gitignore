@@ -1,5 +1,6 @@
 .DS_Store
 traces
+interface 
 *.py[cod]
 # C extensions
 *.so
@@ -58,6 +59,7 @@ DerivedData
 .state
 *.log
 *.json
+*.analyzed
 *.db
 
 bro/todo.md

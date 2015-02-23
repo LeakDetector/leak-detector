@@ -1,6 +1,7 @@
 import pickle
 import requests
-from ..includes import bottlenose as bottlenose
+import bottlenose
+
 from BeautifulSoup import BeautifulSoup
 from userdata import Product
 
@@ -41,7 +42,7 @@ class Amazon(object):
                 # Response will contain an <error> tag if there is a problem
                 if not item.find('error'): 
                     attrtags = ['title', 'formattedprice', 'brand']
-                    name, price, vendor = [item.find(attr).text for attr in attrtags]
+                    name, price, vendor = [item.find(attr).text if item.find(attr) else "n/a" for attr in attrtags]
                     category = "%s > %s" % (itemattr('binding'), itemattr('productgroup'))
                     product = Product(name, price=price, vendor=vendor, description=category)
                     self.cache[asin] = product
