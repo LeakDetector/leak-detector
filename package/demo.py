@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
-
 import leakdetector.leakdetector as ld
 import plaintext_summary as summary
 
@@ -36,6 +34,6 @@ if __name__ == '__main__':
         with open("%s.txt" % outfile, 'w') as f:
             f.write(report)
         f.closed    
-        print(report)
+        print report
     except:
-        print("Insufficient data was captured to print an analysis.")    
+        print "Insufficient data was captured to print an analysis."
