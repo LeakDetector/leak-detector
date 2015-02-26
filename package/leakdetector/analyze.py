@@ -118,8 +118,8 @@ class LeakResults(object):
                 
     def available_keys(self, category):
         """Overlap between relevant keys and available keys."""
-        relevant = config.analysis.relevant_keys[category])
-        available = set(self.leaks.keys() + self.processed.keys()
+        relevant = set(config.analysis.relevant_keys[category])
+        available = set(self.leaks.keys() + self.processed.keys())
         return set(relevant & available)
         
     def is_available(self, key):

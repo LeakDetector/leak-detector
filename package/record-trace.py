@@ -3,6 +3,7 @@
 import leakdetector.leakdetector as ld
 import argparse
 import os
+import datetime
 
 if __name__ == '__main__':
     """Command line entry point to run leak detector."""
@@ -18,12 +19,17 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--interface', default='en1', help='Name of interface to sniff (use "ifconfig" to see options).')
 #   parser.add_argument('-t', '--analyzeinterval', type=int, default=5, help='When running in live mode, how often to analyze Bro logs? (seconds)')
     args = parser.parse_args()
-    
-    if args.outfile:
-        here = os.path.dirname(os.path.realpath(__file__))
-        outfile = os.path.join(here, args.outfile)
+
+    if not args.outfile:
+        now = datetime.datetime.now().isoformat("_").replace(":", "_").replace(".", "_")
+        outfile = "leakdetector-output-%s" % now + ".json"
     else:
-        outfile = args.outfile    
+        outfile = args.outfile + ".json"  
+
+    here = os.path.dirname(os.path.realpath(__file__))
+    outfile = os.path.join(here, outfile)
+        
         
     # Run
     ld.main(args.interface, outfile=outfile, tracefile=args.tracefile, _filter=args.filter, logdir=args.logdir, verbose=args.verbose)
+    print outfile

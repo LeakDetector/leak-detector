@@ -30,7 +30,8 @@ query_keywords = ["q",
                 "st", 
                 "_nkw", # eBay 
                 "field-keywords",
-                "utmdt" # Google Analytics]
+                "utmdt" # Google Analytics
+                ]
 
 # Remove 'noisy' domains such as JS CDNs, 
 exclude_suffix = ['s3.amazonaws.com', 'googleapis.com', 'in-addr.arpa', '', 'rackcdn.com']
