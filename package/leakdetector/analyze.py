@@ -267,7 +267,12 @@ class LeakResults(object):
     def _process_httpinfo(self):
         """Extract unsecure HTTP requests into parsed (domain, uri) tuples."""
         if self.leaks.get('http-queries'):
-            self.temp['http-queries'] = [(tldextract.extract(data[0]), data[1]) for data in self.leaks['http-queries']]
+            self.temp['http-queries'] = []
+            for domain, query, timestamp in self.leaks['http-queries']:
+                # (domain, query, timestamp)
+                history_point = (tldextract.extract(domain), query, timestamp)
+                self.temp['http-queries'].append(history_point)
+
 
     @register(5)
     @merge_processed
@@ -424,7 +429,7 @@ class LeakResults(object):
         # Build list of queries to further process
         interesting_queries = []
         if not self.leaks.get('http-queries'): return
-        for domain, uri in self.processed['http-queries']:
+        for domain, uri, ts in self.processed['http-queries']:
             qs = urlparse.parse_qs(uri)
             if any(key in qs for key in filter_keywords):
                 interesting_queries.append((domain, qs))
@@ -447,7 +452,8 @@ class LeakResults(object):
         # Process further: for example, get the product info from an Amazon ASIN
         
         # All domains recorded if they also appear in the list of sites with extractors
-        interesting_sites = [(domain, uri) for domain, uri in self.processed['http-queries'] 
+
+        interesting_sites = [(domain, uri) for domain, uri, ts in self.processed['http-queries'] 
                                 if any(ex.scope == domain.registered_domain for ex in self.extractors.getall('uri-regex'))]
 
         for domain, uri in interesting_sites:
@@ -486,7 +492,7 @@ class LeakResults(object):
                 if trackerdomain in d.domains: match = True 
             
             if self.leaks.get('http-queries'):
-                for domain, uri in self.processed['http-queries']:
+                for domain, uri, ts in self.processed['http-queries']:
                     domain_and_uri_match = ( trackerdomain and trackerdomain == domain and regex.findall(uri) )
                     uri_match = (not trackerdomain and regex.findall(uri))
                     if domain_and_uri_match or uri_match: match = True
@@ -596,7 +602,8 @@ class LeakResults(object):
         self._export = {
             'services': [svc for svc in combined if type(svc) == Service],
             'history': {'domains': [dom for dom in combined if type(dom) == Domain],
-                        'page-titles': self.finished.get('html-titles')},
+                        'page-titles': self.finished.get('html-titles'),
+                        'raw-history': sorted(self.leaks.get('http-queries'), key=lambda entry: float(entry[2]))},
             'email': {k:self.finished[k] for k in self.available_keys('email')},
             'files': {k:self.finished[k] for k in self.available_keys('files')},
             'system': {k:self.finished[k] for k in self.available_keys('system')},

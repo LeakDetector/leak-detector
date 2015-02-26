@@ -55,7 +55,8 @@ class HTTPLogParser(BroLogParser):
         uri = r['uri']
         
         if host != "-" or uri != "-": 
-            self.data['http-queries'].add( (host,uri) )
+            data = (host, uri, r['ts'])
+            self.data['http-queries'].add( data )
         
         
         
