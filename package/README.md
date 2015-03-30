@@ -60,12 +60,47 @@ Other files:
 	
 Running the scripts
 -------------------
-Capture data:
-    
-	python leakdetector.py -i en1 -o output-file.json
+Capture data and return intermediate and processed data:
+  
+	python record-trace.py -i en1 -o filename
 	# Replace `en1` with your network card. `en1` is Wi-Fi on OS X if you also have an ethernet port
 
-Process data:
+Just process intermediate data:
 	
-	python analyze.py output-file.json processed.json
+	python analyze-trace.py input-filename.json analyzed-output-filename.json
+
+Programatically running LD
+--------------------------
+There should be no need to directly run `leakdetector.py` in the `leakdetector/` folder. If you want to directly start and stop from a Python script, you can import the module and control it that way (see `record-trace.py` for an example).
+
+If you want to programatically start LD, you can do so by importing. For example:
+	
+	import leakdetector.leakdetector as ld
+	ld.main("en1", outfile="example-trace")
+	
+Note that ending this recording session will still require a ctrl-c to kill the LD process looping in the background. If you want to automatically stop it with no user intervention, I would recommend forking the `ld.main` call into a subprocess and then killing it through Python. 
+
+	import multiprocessing, os, time
+	proc = multiprocessing.Process(target=lambda: ld.main("en1", outfile="example-trace.json"))
+
+	# Start for 30 seconds
+	proc.start()
+	time.sleep(30)
+	
+	# Stop
+	proc.terminate()
+	
+	# Wait for processing to finish
+	while True:
+		if os.path.exists("example-trace.json"):
+			p.join()
+			break
+	
+	# Now do other stuff
+	...
+	
+	
+	
+	
+	
 
