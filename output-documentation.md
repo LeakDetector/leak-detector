@@ -1,6 +1,9 @@
 Outline of keys and values in output
 ------------------------------------
 
+* `services`: A list of special (for lack of a better term) websites that we have extra processing for. So, Amazon would fit in here because we have the special shopping data lookup coded into the program.
+	* Can contain all of the things under `domains`, plus custom elements for each site.
+	* Right now, `products` and `queries` are the only special data surfaced. For a full list, look at `leakdetector/config/analysis.py` and the `extractors` variable. This variable defines all of the special lookup code used right now. For example, you can see Amazon uses regular expression matching, references a function for looking up product data from the product ID number, and outputs to an attribute called `products`.
 * `history`: The parent key for things involving web / browsing history.
 	* `domains`: A list of dictionaries. Each dictionary represents an individual site.
 		* `category`: Most domains have a category (if it was possible to automatically categorize it).
@@ -18,9 +21,6 @@ Outline of keys and values in output
 	* `page-titles`: A list of scraped web page titles (specifically, anything between two `<title>` tags in captured HTML source).
 	* `raw-history`: A sorted, time-stamped list of pages and files loaded.
 		* Each element in this list consists of a base domain, a request path, and a UNIX timestamp.
-	* `special-sites`: A list of special (for lack of a better term) websites that we have extra processing for. So, Amazon would fit in here because we have the special shopping data lookup coded into the program.
-		* Can contain all of the things under `domains`, plus custom elements for each site.
-		* Right now, `products` and `queries` are the only special data surfaced. For a full list, look at `leakdetector/config/analysis.py` and the `extractors` variable. This variable defines all of the special lookup code used right now. For example, you can see Amazon uses regular expression matching, references a function for looking up product data from the product ID number, and outputs to an attribute called `products`.
 * `email`: Emails extracted from the data stream.
 * `files`: Empty for now.
 * `system`: Information related to the network connection and machine.
