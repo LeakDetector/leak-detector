@@ -600,10 +600,11 @@ class LeakResults(object):
         
         # TODO: These categories are pretty arbitrary for right now. 
         self._export = {
-            'services': [svc for svc in combined if type(svc) == Service],
             'history': {'domains': [dom for dom in combined if type(dom) == Domain],
                         'page-titles': self.finished.get('html-titles'),
-                        'raw-history': sorted(self.leaks.get('http-queries'), key=lambda entry: float(entry[2]))},
+                        'raw-history': sorted(self.leaks.get('http-queries'), key=lambda entry: float(entry[2])),
+                        'special-sites': [svc for svc in combined if type(svc) == Service]
+                        },
             'email': {k:self.finished[k] for k in self.available_keys('email')},
             'files': {k:self.finished[k] for k in self.available_keys('files')},
             'system': {k:self.finished[k] for k in self.available_keys('system')},
