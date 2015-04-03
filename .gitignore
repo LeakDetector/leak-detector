@@ -58,8 +58,7 @@ DerivedData
 # bro
 .state
 *.log
-*.json
-*.analyzed
+#*.analyzed
 *.db
 
 bro/todo.md
