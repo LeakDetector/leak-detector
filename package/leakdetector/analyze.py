@@ -1,5 +1,5 @@
 # Builtins
-from collections import Counter, namedtuple
+from collections import Counter, namedtuple, defaultdict
 from functools import wraps
 import simplejson as json
 import itertools
@@ -265,14 +265,50 @@ class LeakResults(object):
     @register(4)
     @merge_processed
     def _process_httpinfo(self):
-        """Extract unsecure HTTP requests into parsed (domain, uri) tuples."""
+        """Extract unsecure HTTP requests into parsed (domain, uri) tuples."""        
         if self.leaks.get('http-queries'):
             self.temp['http-queries'] = []
             for domain, query, timestamp in self.leaks['http-queries']:
                 # (domain, query, timestamp)
                 history_point = (tldextract.extract(domain), query, timestamp)
                 self.temp['http-queries'].append(history_point)
+                # Time series sort
+                self.temp['http-queries'].sort(key=lambda point: point[2])
+                
+    @register(5)            
+    @merge_processed
+    def _group_httpinfo(self):
+        """Group HTTP requests by page heuristic."""
+        def ts_difference(l):
+            new_list = []
+            for i, row in enumerate(l):
+                row = list(row)
+                if i == 0 or i==len(l)-1:
+                    delta = -1
+                else:
+                    delta = float(l[i+1][-1]) - float(row[-1])
 
+                row.append(delta)        
+                new_list.append(row)
+        
+            return new_list
+            
+        # Add column with time delta to next request
+        with_diffs = ts_difference( sorted(self.processed['http-queries'], key=lambda row: row[2]) ) 
+        
+        self.temp['http-queries-grouped'] = defaultdict(list)
+        group_number = 0
+
+        for is_start, values in itertools.groupby(with_diffs, lambda row: row[-1] > 3 or row[-1] == -1):
+            record = list(values)
+            if is_start:
+                # if len(record) == 1:
+                group_number += 1 
+                self.temp['http-queries-grouped'][group_number].append(record[0])
+                # else:
+                    # raise ValueError("Start key has length not equal to one.")
+            else:
+                self.temp['http-queries-grouped'][group_number] += record
 
     @register(5)
     @merge_processed
@@ -603,7 +639,8 @@ class LeakResults(object):
             'services': [svc for svc in combined if type(svc) == Service],
             'history': {'domains': [dom for dom in combined if type(dom) == Domain],
                         'page-titles': self.finished.get('html-titles'),
-                        'raw-history': sorted(self.leaks.get('http-queries'), key=lambda entry: float(entry[2]))},
+                        'raw-history': sorted(self.leaks.get('http-queries'), key=lambda entry: float(entry[2])),
+                        'grouped-history': self.finished.get('http-queries-grouped')},
             'email': {k:self.finished[k] for k in self.available_keys('email')},
             'files': {k:self.finished[k] for k in self.available_keys('files')},
             'system': {k:self.finished[k] for k in self.available_keys('system')},
