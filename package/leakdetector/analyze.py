@@ -468,11 +468,11 @@ class LeakResults(object):
         for domain, uri, ts in self.processed['http-queries']:
             qs = urlparse.parse_qs(uri)
             if any(key in qs for key in filter_keywords):
-                interesting_queries.append((domain, qs))
+                interesting_queries.append((domain, qs, ts))
                                 
         # Standalone findings: for example, a search term
         # (google.com/search?q=blah)
-        for domain, qs in interesting_queries:
+        for domain, qs, ts in interesting_queries:
             # Find the appropriate query string to look for and extract term
             queryvar = [var for var in filter_keywords if var in qs][0]
             searchterm = qs[queryvar]
@@ -483,7 +483,7 @@ class LeakResults(object):
             if domain.registered_domain in self.leaks['combined']:
                 item = self.finditem(self.leaks['combined'], domain.registered_domain)
                 if not hasattr(item, "queries"): item.queries = set()
-                item.queries.add(searchterm)
+                item.queries.add((searchterm, ts))
                 
         # Process further: for example, get the product info from an Amazon ASIN
         
