@@ -47,7 +47,7 @@ class Amazon(object):
             except:
                 return False               
             
-        dummyProduct = Product(name='Amazon Product', category='Not Found' 
+        dummyProduct = Product(name='Not Found',
                                 description='You viewed an Amazon product, but we were unable to match its ID in the database.')
         
         if is_asin(asin) and len(asin) == 10:
