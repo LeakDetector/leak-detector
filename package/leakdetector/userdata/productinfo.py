@@ -36,7 +36,16 @@ class Amazon(object):
         is_asin = re.compile("[a-zA-Z0-9]{10}").match
         def is_asin(asin):
             tokens = ['REDIRECTIO', 'NAVIGATION', 'SESSIONCAC', 'MEMBERSHIP', 'REVIEWSGAL', 'SLREDIRECT']
-            return re.compile("[a-zA-Z0-9]{10}").match and asin.upper() not in tokens and asin.upper()[0] == 'B'
+            noTokens = asin.upper() not in tokens 
+            begin = asin.upper()[0] in ['A', 'B', '0']
+            return re.compile("[a-zA-Z0-9]{10}").match(asin) and noTokens and begin
+                    
+        def fetchImage(amazonAPI, asin):
+
+            try:
+                return amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="Images").find('mediumimage').find('url').string
+            except:
+                return False               
             
         dummyProduct = Product(name='Amazon Product', 
                                 description='You viewed an Amazon product, but we were unable to match its ID in the database.')
@@ -58,19 +67,20 @@ class Amazon(object):
                     except:
                         category = "Amazon product"
                         
-                    product = Product(name, price=price, vendor=vendor, description=category)
+                    product = Product(name, price=price, vendor=vendor, description=category, image=fetchImage(self.amazonAPI, asin))
                     self.cache[asin] = product
                     return product
                 else:
                     # Since an automated process is providing the ASINs, fail silently instead of
                     # raising an exception as matches aren't guaranteed to be 100% accurate.
-                    import ipdb; ipdb.set_trace()
+
                     return dummyProduct
             else:
                 return self.cache[asin]        
-        # else:
-        #     if asin.upper() != 'REDIRECTIO':
-        #         raise ValueError("%s is not a valid ASIN (must be alphanumeric and ten characters long)." % asin)
+        else:
+            return dummyProduct
+            # if asin.upper() != 'REDIRECTIO':
+            #     raise ValueError("%s is not a valid ASIN (must be alphanumeric and ten characters long)." % asin)
                 
 class Ebay(object):
     """An interface to eBay's listing info API, specifically the GetSingleItem call.

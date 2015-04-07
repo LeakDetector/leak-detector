@@ -175,6 +175,13 @@ class LeakResults(object):
             return [svc for svc in l if item in svc.domains[0]][0]
         else:    
             return l[l.index(item)]
+            
+    def findtimestamp(self, item):
+        entries = [entry for entry in self.leaks['http-queries'] if entry[1] == item]
+        if len(entries) and len(entries[0]) == 3:
+            return entries[0][2]
+        else:
+            return False    
 
     @register(-1) # Always do first
     @merge_processed

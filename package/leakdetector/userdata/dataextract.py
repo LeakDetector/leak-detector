@@ -44,15 +44,18 @@ class SiteURIRegex(ExtractSiteStructuredData):
         matches = self.re.findall(data)
         
         if matches:
+
             # Grab the relevant extracted term
             item = self.further(matches[0]) if type(matches) in [list, tuple] else self.further(matches)
             # Has that term been recorded on this domain yet?
             existing = parent.finditem(parent.leaks['combined'], self.scope)    
+            ts = parent.findtimestamp(data)
+            
             if not hasattr(existing, self.attr): 
                 # If not, create the set to hold matches
                 setattr(existing, self.attr, set())
             # Add it
-            getattr(existing, self.attr).add(item) 
+            getattr(existing, self.attr).add((item, ts)) 
 
 class SiteFormData(ExtractSiteStructuredData):
     """Extractor that grabs values from recorded site form data given
