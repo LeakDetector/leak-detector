@@ -34,27 +34,43 @@ class Amazon(object):
         # An ASIN is Amazon's universal product identifier that takes the form of a
         # ten-character alphanumeric string (e.g., B000012345X)
         is_asin = re.compile("[a-zA-Z0-9]{10}").match
+        def is_asin(asin):
+            tokens = ['REDIRECTIO', 'NAVIGATION', 'SESSIONCAC', 'MEMBERSHIP', 'REVIEWSGAL', 'SLREDIRECT']
+            return re.compile("[a-zA-Z0-9]{10}").match and asin.upper() not in tokens and asin.upper()[0] == 'B'
+            
+        dummyProduct = Product(name='Amazon Product', 
+                                description='You viewed an Amazon product, but we were unable to match its ID in the database.')
+        
         if is_asin(asin) and len(asin) == 10:
             if asin not in self.cache:
-                item = self.amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="ItemAttributes")
-                itemattr = lambda tag: item.find(tag).text
-            
+                try:
+                    item = self.amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="ItemAttributes")
+                    itemattr = lambda tag: item.find(tag).text
+                except:
+                    return dummyProduct
+                    
                 # Response will contain an <error> tag if there is a problem
                 if not item.find('error'): 
                     attrtags = ['title', 'formattedprice', 'brand']
                     name, price, vendor = [item.find(attr).text if item.find(attr) else "n/a" for attr in attrtags]
-                    category = "%s > %s" % (itemattr('binding'), itemattr('productgroup'))
+                    try:
+                        category = "%s > %s" % (itemattr('binding'), itemattr('productgroup'))
+                    except:
+                        category = "Amazon product"
+                        
                     product = Product(name, price=price, vendor=vendor, description=category)
                     self.cache[asin] = product
                     return product
                 else:
                     # Since an automated process is providing the ASINs, fail silently instead of
                     # raising an exception as matches aren't guaranteed to be 100% accurate.
-                    return False
+                    import ipdb; ipdb.set_trace()
+                    return dummyProduct
             else:
                 return self.cache[asin]        
-        else:
-            raise ValueError("%s is not a valid ASIN (must be alphanumeric and ten characters long)." % asin)
+        # else:
+        #     if asin.upper() != 'REDIRECTIO':
+        #         raise ValueError("%s is not a valid ASIN (must be alphanumeric and ten characters long)." % asin)
                 
 class Ebay(object):
     """An interface to eBay's listing info API, specifically the GetSingleItem call.
