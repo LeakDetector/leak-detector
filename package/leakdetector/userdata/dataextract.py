@@ -56,7 +56,8 @@ class SiteURIRegex(ExtractSiteStructuredData):
                 setattr(existing, self.attr, set())
             # Add it
             if hasattr(item, 'name') and getattr(item, 'name') != 'Not Found':
-                getattr(existing, self.attr).add((item, ts)) 
+                if item not in [match[0] for match in getattr(existing, self.attr)]:
+                    getattr(existing, self.attr).add((item, ts)) 
 
 class SiteFormData(ExtractSiteStructuredData):
     """Extractor that grabs values from recorded site form data given

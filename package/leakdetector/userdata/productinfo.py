@@ -79,8 +79,6 @@ class Amazon(object):
                 return self.cache[asin]        
         else:
             return dummyProduct
-            # if asin.upper() != 'REDIRECTIO':
-            #     raise ValueError("%s is not a valid ASIN (must be alphanumeric and ten characters long)." % asin)
                 
 class Ebay(object):
     """An interface to eBay's listing info API, specifically the GetSingleItem call.
