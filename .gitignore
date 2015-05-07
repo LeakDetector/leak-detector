@@ -65,3 +65,5 @@ bro/todo.md
 dist
 package/leakdetector/includes/site-data/archived-dmoz.zip
 venv
+
+package/amazon-grp-new.json.analyzed
