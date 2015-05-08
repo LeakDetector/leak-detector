@@ -42,7 +42,7 @@ class SiteURIRegex(ExtractSiteStructuredData):
             raise TypeError("`parent` must be a LeakResults object.")
 
         matches = self.re.findall(data)
-        
+        amzn = "amazon" in self.scope.lower()        
         if matches:
 
             # Grab the relevant extracted term
@@ -53,11 +53,30 @@ class SiteURIRegex(ExtractSiteStructuredData):
             
             if not hasattr(existing, self.attr): 
                 # If not, create the set to hold matches
-                setattr(existing, self.attr, set())
+                if amzn:
+                    # We actually want to see duplicates for the Amazon task
+                    setattr(existing, self.attr, list())
+                else:
+                    # For other sites, no duplicates
+                    setattr(existing, self.attr, set())
+                
             # Add it
             if hasattr(item, 'name') and getattr(item, 'name') != 'Not Found':
-                if item not in [match[0] for match in getattr(existing, self.attr)]:
-                    getattr(existing, self.attr).add((item, ts)) 
+                # Special for amazon
+                if amzn: 
+                    # Add the product if the list is empty
+                    currentList = getattr(existing, self.attr)
+                    if len(currentList) == 0:
+                        getattr(existing, self.attr).append((item, ts)) 
+                    else:
+                        # Otherwise, only add the product if it is not a duplicate of the previous product
+                        if currentList[-1][0] != item:
+
+                            getattr(existing, self.attr).append((item, ts))                             
+                else:                        
+                    # Add the item if it is not a duplicate at all 
+                    if item not in [match[0] for match in getattr(existing, self.attr)]:
+                        getattr(existing, self.attr).add((item, ts)) 
 
 class SiteFormData(ExtractSiteStructuredData):
     """Extractor that grabs values from recorded site form data given
@@ -84,7 +103,7 @@ class SiteFormData(ExtractSiteStructuredData):
         if "LeakResults" not in str(parent.__class__):
             raise TypeError("`parent` must be a LeakResults object.")
         
-        attrinfo = defaultdict(set)
+        attrinfo = defaultdict(set)    
         
         for key in self.keys:
             # Look for relevant form data

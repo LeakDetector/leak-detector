@@ -170,12 +170,12 @@ class LeakResults(object):
         return wrapped
 
     def finditem(self, l, item, domains=False):
-        """Find a specific item in the list of domains and services."""
+        """Find a specific item in the list of domains and services."""    
         if domains:
             return [svc for svc in l if item in svc.domains[0]][0]
         else:    
             return l[l.index(item)]
-            
+        
     def findtimestamp(self, item):
         entries = [entry for entry in self.leaks['http-queries'] if entry[1] == item]
         if len(entries) and len(entries[0]) == 3:
@@ -541,8 +541,12 @@ class LeakResults(object):
                     if domain_and_uri_match or uri_match: match = True
 
             if match:
-                self.finditem(self.leaks['combined'], domain).tracking = True
-                    
+                try:
+                    if self.finditem(self.leaks['combined'], domain) is not None: 
+                        self.finditem(self.leaks['combined'], domain).tracking = True
+                except:
+                    continue
+                        
         # Categorize CDN domains and remove individual domains
         present_cdns = list(set([d for d in self.map.cdns if d in self.leaks['combined']]))
         for cdn in present_cdns:
