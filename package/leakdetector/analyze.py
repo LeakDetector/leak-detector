@@ -299,23 +299,24 @@ class LeakResults(object):
                 new_list.append(row)
         
             return new_list
-            
-        # Add column with time delta to next request
-        with_diffs = ts_difference( sorted(self.processed['http-queries'], key=lambda row: row[2]) ) 
         
-        self.temp['http-queries-grouped'] = defaultdict(list)
-        group_number = 0
+        if self.processed.get('http-queries'):            
+            # Add column with time delta to next request
+            with_diffs = ts_difference( sorted(self.processed['http-queries'], key=lambda row: row[2]) ) 
+        
+            self.temp['http-queries-grouped'] = defaultdict(list)
+            group_number = 0
 
-        for is_start, values in itertools.groupby(with_diffs, lambda row: row[-1] > 3 or row[-1] == -1):
-            record = list(values)
-            if is_start:
-                # if len(record) == 1:
-                group_number += 1 
-                self.temp['http-queries-grouped'][group_number].append(record[0])
-                # else:
-                    # raise ValueError("Start key has length not equal to one.")
-            else:
-                self.temp['http-queries-grouped'][group_number] += record
+            for is_start, values in itertools.groupby(with_diffs, lambda row: row[-1] > 3 or row[-1] == -1):
+                record = list(values)
+                if is_start:
+                    # if len(record) == 1:
+                    group_number += 1 
+                    self.temp['http-queries-grouped'][group_number].append(record[0])
+                    # else:
+                        # raise ValueError("Start key has length not equal to one.")
+                else:
+                    self.temp['http-queries-grouped'][group_number] += record
 
     @register(5)
     @merge_processed

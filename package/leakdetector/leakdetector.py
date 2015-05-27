@@ -24,7 +24,7 @@ except NameError:
     here = os.path.curdir + os.path.sep
 
 BRO = '/usr/bin/env bro'
-BRO_SCRIPTS = glob.glob(os.path.join(here, "scripts/*.bro"))
+BRO_SCRIPTS = glob.glob(os.path.join("\"" + here + "\"", "scripts/*.bro"))
 
 # Which bro logs do we want to parse?
 # Maps log name to corresponding parser class
