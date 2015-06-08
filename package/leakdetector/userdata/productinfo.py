@@ -41,7 +41,6 @@ class Amazon(object):
             return re.compile("[a-zA-Z0-9]{10}").match(asin) and noTokens and begin
                     
         def fetchImage(amazonAPI, asin):
-
             try:
                 return amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="Images").find('mediumimage').find('url').string
             except:

@@ -232,7 +232,12 @@ class Product(object):
 
     def __eq__(self, other):
         if type(other) is Product:
-            return hash(self) == hash(other)
+            return (
+                self.name == other.name and \
+                self.price == other.price and \
+                self.description == other.description and\
+                self.vendor == other.vendor 
+            )
         elif type(other) is str:
             return self.name == other
             
