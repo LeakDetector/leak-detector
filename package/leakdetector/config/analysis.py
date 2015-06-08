@@ -57,13 +57,13 @@ extractors = {
     "amazon2":
         {'type': 'regex',
         'scope': 'amazon.com',
-        'regex': re.compile(r"(?:ASIN=)([a-zA-Z0-9]{10})"),
+        'regex': re.compile(r"(?:ASIN=)([a-zA-Z0-9]{10})", re.IGNORECASE),
         'attribute': 'products',
         'further': productinfo.Amazon(apis.AMAZON_API_KEY).asinlookup},
     "amazon3": {
         'type': 'regex',
         'scope': 'amazon.com',
-        'regex': re.compile(r"(?:asinList=)([a-zA-Z0-9]{10})"),
+        'regex': re.compile(r"(?:asinList=)([a-zA-Z0-9]{10})", re.IGNORECASE),
         'attribute': 'products',
         'further': productinfo.Amazon(apis.AMAZON_API_KEY).asinlookup},
     "southwest":
