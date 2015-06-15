@@ -1,6 +1,7 @@
 import csv
 import pandas as pd
 import argparse
+import os
 from glob import glob
 
 def parseKey(fn):
@@ -55,22 +56,24 @@ def rename(file, key):
 
     # The column name dictionary has the filename without ".csv"
     # as a key, so get that
-    fileKey = file.split(".csv")[0]
+    fileKey = os.path.basename(file).split(".csv")[0]
 
     # Rename the columns
     renamed = df.rename(columns=key[fileKey]['columns'])
     
     # Export
-    renamed.to_csv("*Renamed_{}".format(file))
+    exportname = "*Renamed_{}".format(fileKey) # Preserve filename
+    path = os.path.dirname(os.path.abspath(file)) # Preserve folder path
+    renamed.to_csv(os.path.join(path, exportname) + ".csv")        
     
-    print "Finished renaming {}".format(file)
+    print "Finished renaming {}".format(os.path.basename(file))
     
 def renameFolder(path, key):
     # Don't rename the key
     exclude = ['Key.csv']
     
     # Get all CSV files otherwise
-    canRename = [fn for fn in glob("*.csv") if fn not in exclude]
+    canRename = [fn for fn in glob(os.path.join(path, "*.csv")) if fn not in exclude]
     
     for fn in canRename:
         rename(fn, key)
