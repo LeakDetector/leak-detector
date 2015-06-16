@@ -151,8 +151,8 @@ def main(interface, outfile=None, tracefile=None, analyzeinterval=None, _filter=
 
     if tracefile:
         logging.getLogger(__name__).info('Analyzing trace: %s', tracefile)
-        run_bro('-r %s' % (tracefile), logdir, stdout=stdout)
-        analyze_logs(logdir)
+        run_bro('-r %s' % (tracefile), logdir)
+        analyze_logs(logdir, outfile=outfile)
     elif interface:
         logging.getLogger(__name__).info('Analyzing traffic on %s', interface)
         if analyzeinterval:
