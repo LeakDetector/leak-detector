@@ -48,12 +48,12 @@ extractors = {
         'regex': re.compile(r'/itm/(?:.+)/([0-9]{12})'), 
         'attribute': 'products',
         'further': productinfo.Ebay(apis.EBAY_API_KEY).idlookup},
-    # "amazon":
-    #     {'type': 'regex',
-    #     'scope': 'amazon.com',
-    #     'regex': re.compile(r"(?:/|a=|dp|gp/product)([a-zA-Z0-9]{10})"),
-    #     'attribute': 'products',
-    #     'further': productinfo.Amazon(apis.AMAZON_API_KEY).asinlookup},
+    "amazon":
+        {'type': 'regex',
+        'scope': 'amazon.com',
+        'regex': re.compile(r"(?:/|a=|dp|gp/product)([a-zA-Z0-9]{10})"),
+        'attribute': 'products',
+        'further': productinfo.Amazon(apis.AMAZON_API_KEY).asinlookup},
     "amazon2":
         {'type': 'regex',
         'scope': 'amazon.com',

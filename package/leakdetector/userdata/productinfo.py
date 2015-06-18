@@ -44,7 +44,7 @@ class Amazon(object):
             try:
                 return amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="Images").find('mediumimage').find('url').string
             except:
-                return False               
+                return "http://i.imgur.com/WDxVqYU.png"               
             
         dummyProduct = Product(name='Not Found',
                                 description='You viewed an Amazon product, but we were unable to match its ID in the database.')

@@ -106,6 +106,24 @@ def run_bro(bro_args, logdir):
     os.chdir(origdir)
     bro_proc.wait()
 
+
+def monitor(interface, outfile=None, verbose=None):
+    def kill_handler(signum, frame):
+        """Kill tcpdump and then analyze pcap."""
+        if tcpdump_proc:
+            tcpdump_proc.terminate()
+        
+        run_bro('-r %s' % (tracefile), logdir)
+        analyze_logs(logdir, outfile=outfile)
+        print "Analyzing captured network traffic"
+        analyze.main(outfile, "%s.analyzed" % outfile)
+        
+    # run sniff.sh
+    tcpdump_proc = subprocess.Popen(["bash", "sniff.sh", interface])
+    tcpdump_proc.wait()
+    
+    logging.getLogger(__name__).info('Analyzing trace: %s', tracefile)
+
 def main(interface, outfile=None, tracefile=None, analyzeinterval=None, _filter=None, logdir=None, verbose=False, stdout=False):
     """Main function to run from command line."""
     def kill_handler(signum, frame): 
