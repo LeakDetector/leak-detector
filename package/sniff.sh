@@ -24,13 +24,16 @@ sudo tcpdump \
     -i $WIFICARD \
     -I \
     -n \
-    -y IEEE802_11 \
     -w $OUTPUT_FILE \
-    not ether host $ETHER_ADDR \
-    and not host $IP_ADDR \
-    and not "(wlan[0:1] & 0xfc) == 0x40" \
+    not "(wlan[0:1] & 0xfc) == 0x40" \
     and not "(wlan[0:1] & 0xfc) == 0x50" \
     and not "(wlan[0:1] & 0xfc) == 0x80" \
     and not "(wlan[0:1] & 0xfc) == 0xa4" \
     and not "(wlan[0:1] & 0xfc) == 0xc4" \
-    and not "(wlan[0:1] & 0xfc) == 0xd4"
+    and not "(wlan[0:1] & 0xfc) == 0xd4" \
+    # and not ether host $ETHER_ADDR \
+    # and not host $IP_ADDR \
+    # and not "(wlan[0:1] & 0xfc) == 0x7c" \
+    # and not "(wlan[0:1] & 0xfc) == 0x69" \
+
+airdecap-ng $OUTPUT_FILE

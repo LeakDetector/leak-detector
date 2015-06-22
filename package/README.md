@@ -99,8 +99,8 @@ Note that ending this recording session will still require a ctrl-c to kill the 
 	# Now do other stuff
 	...
 	
+Leak Detector can also sniff traffic in monitor mode on unprotected networks. Run `record-trace.py` with the `-n` argument and your network card will be put into monitor mode and record all traffic on unencrypted Wi-fi networks. This uses `tcpdump` on the backend and currently works on OS X. However, you could change this to work on Linux by editing `sniff.sh` and replacing the appropriate commands for your OS.
 	
-	
-	
-	
-
+	> python record-trace.py -f en0
+       
+Note that this requires tcpdump as well as the `airdecap-ng` package. `airdecap` is part of the `aircrack-ng` package and is used to strip 802.11 headers from the packet capture as Bro cannot currently deal with these.

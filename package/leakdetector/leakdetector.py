@@ -108,18 +108,37 @@ def run_bro(bro_args, logdir):
 
 
 def monitor(interface, outfile=None, verbose=None):
+    tracefile = os.path.abspath("ld-pcap-dec.pcap")
+    
     def kill_handler(signum, frame):
         """Kill tcpdump and then analyze pcap."""
         if tcpdump_proc:
             tcpdump_proc.terminate()
         
+
         run_bro('-r %s' % (tracefile), logdir)
         analyze_logs(logdir, outfile=outfile)
+
         print "Analyzing captured network traffic"
         analyze.main(outfile, "%s.analyzed" % outfile)
+
+        utils.remove_temp_dir('bro_logs')
+        
+    signal.signal(signal.SIGTERM, kill_handler)
+    signal.signal(signal.SIGINT, kill_handler)
+
+    logging.basicConfig(
+        format = "%(levelname) -10s %(asctime)s %(module)s:%(lineno)s %(funcName) -26s %(message)s",
+        level = logging.DEBUG if verbose else logging.WARNING
+    )    
+    
+    # Make log directory for bro
+    utils.init_temp_dir('bro_logs')
+    logdir = utils.get_temp_dir('bro_logs')
         
     # run sniff.sh
     tcpdump_proc = subprocess.Popen(["bash", "sniff.sh", interface])
+    # tcpdump_proc = subprocess.Popen(["sleep", "256"]) testing
     tcpdump_proc.wait()
     
     logging.getLogger(__name__).info('Analyzing trace: %s', tracefile)
