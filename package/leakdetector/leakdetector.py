@@ -107,7 +107,7 @@ def run_bro(bro_args, logdir):
     bro_proc.wait()
 
 
-def monitor(interface, outfile=None, verbose=None):
+def monitor(interface, outfile=None, verbose=None, sniff=None):
     tracefile = os.path.abspath("ld-pcap-dec.pcap")
     
     def kill_handler(signum, frame):
@@ -115,10 +115,11 @@ def monitor(interface, outfile=None, verbose=None):
         if tcpdump_proc:
             tcpdump_proc.terminate()
         
-
+        # Analyze pcap with bro
         run_bro('-r %s' % (tracefile), logdir)
         analyze_logs(logdir, outfile=outfile)
 
+        # Now run leak detector
         print "Analyzing captured network traffic"
         analyze.main(outfile, "%s.analyzed" % outfile)
 
@@ -137,8 +138,11 @@ def monitor(interface, outfile=None, verbose=None):
     logdir = utils.get_temp_dir('bro_logs')
         
     # run sniff.sh
-    tcpdump_proc = subprocess.Popen(["bash", "sniff.sh", interface])
     # tcpdump_proc = subprocess.Popen(["sleep", "256"]) testing
+    if sniff:
+        tcpdump_proc = subprocess.Popen(["bash", "sniff.sh", interface])
+    else:    
+        tcpdump_proc = subprocess.Popen(['tcpdump', '-i', interface, '-w', tracefile])
     tcpdump_proc.wait()
     
     logging.getLogger(__name__).info('Analyzing trace: %s', tracefile)

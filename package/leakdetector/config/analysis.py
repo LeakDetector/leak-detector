@@ -21,7 +21,7 @@ relevant_keys = {
 }
 
 # settings for _processqueries
-query_ignore_domains = ['fls-na', 'fls', 'files', 'img', 'images']
+query_ignore_domains = ['fls', 'files', 'img', 'images']
 query_keywords = ["q", 
                 "kwd", 
                 "search", 
@@ -64,6 +64,12 @@ extractors = {
         'type': 'regex',
         'scope': 'amazon.com',
         'regex': re.compile(r"(?:asinList=)([a-zA-Z0-9]{10})", re.IGNORECASE),
+        'attribute': 'products',
+        'further': productinfo.Amazon(apis.AMAZON_API_KEY).asinlookup},
+    "amazon4":
+        {'type': 'regex',
+        'scope': 'fls-na.amazon.com',
+        'regex': re.compile(r"(?:/|a=|dp|gp/product)([a-zA-Z0-9]{10})"),
         'attribute': 'products',
         'further': productinfo.Amazon(apis.AMAZON_API_KEY).asinlookup},
     "southwest":
