@@ -73,8 +73,8 @@ def renameFolder(path, key):
     exclude = ['Key.csv']
     
     # Get all CSV files otherwise
-    canRename = [fn for fn in glob(os.path.join(path, "*.csv")) if fn not in exclude]
-    
+    canRename = [fn for fn in glob(os.path.join(path, "*.csv")) if fn.split('./')[1] not in exclude]
+
     for fn in canRename:
         rename(fn, key)
         
