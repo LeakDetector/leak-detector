@@ -69,3 +69,4 @@ venv
 package/amazon-grp-new.json.analyzed
 
 *.pcap
+package/leakdetector/includes/amazon-api.dat
