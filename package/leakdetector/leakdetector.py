@@ -121,9 +121,8 @@ def monitor(interface, outfile=None, verbose=None, sniff=None):
 
         # Now run leak detector
         print "Analyzing captured network traffic"
-        analyze.main(outfile, "%s.analyzed" % outfile)
-
         utils.remove_temp_dir('bro_logs')
+        analyze.main(outfile, "%s.analyzed" % outfile)        
         
     signal.signal(signal.SIGTERM, kill_handler)
     signal.signal(signal.SIGINT, kill_handler)
@@ -158,13 +157,13 @@ def main(interface, outfile=None, tracefile=None, analyzeinterval=None, _filter=
         if bro_proc:
             bro_proc.terminate()
 
-        # remove bro log temp dir
         if not logdir:
             utils.remove_temp_dir('bro_logs')
             
         analyze_logs(logdir, outfile=outfile)
+                        
         print "Analyzing captured network traffic (this may take a second...)"
-        analyze.main(outfile, "%s.analyzed"%outfile)           
+        analyze.main(outfile, "%s.analyzed"%outfile)
             
     if tracefile:
         tracefile = os.path.abspath(tracefile)

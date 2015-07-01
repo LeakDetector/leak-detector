@@ -1,5 +1,6 @@
 from collections import defaultdict
 from BroLogParser import BroLogParser
+import tldextract
 
 class HTTPLogParser(BroLogParser):
     WINDOWS = {
@@ -54,10 +55,16 @@ class HTTPLogParser(BroLogParser):
         
         host = r['host']
         uri = r['uri']
-        
+
         if host != "-" or uri != "-": 
             data = (host, uri, r['ts'])
             self.data['http-queries'].add( data )
         
-        
+            # Also get referrer data
+            ref = r['referrer']
+            domain  = tldextract.extract(ref)
+            if ref:
+                refhost = "%s.%s" % (domain.domain, domain.suffix)
+                refdata = (refhost, ref, r['ts'])
+                self.data['http-queries'].add(refdata)
         

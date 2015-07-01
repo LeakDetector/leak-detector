@@ -11,15 +11,26 @@ class Amazon(object):
     def __init__(self, apisettings):
         # Load API settings (pickled dictionary written to a file containing API key and other settings.)
         self.amazonAPI = bottlenose.Amazon()
-        try:
-            with open(apisettings, "r") as f:
-                APIsettings = pickle.load(f)
-        except IOError, e:
-            raise IOError("%s.  Please load a valid API settings file." % e) 
+        APIsettings = {
+            'AWSAccessKeyId': '',
+            'AWSSecretAccessKey': '',
+            'AssociateTag': 'cmuld-20',
+            'CacheReader': None,
+            'CacheWriter': None,
+            'ErrorHandler': None,
+            'MaxQPS': 2,
+            'Operation': None,
+            'Parser': None,
+            'Region': 'US',
+            'Timeout': None,
+            'Version': '2011-08-01',
+            '_last_query_time': [1435586929.877117]
+        }
+        
         APIsettings['Parser'] = BeautifulSoup
         self.amazonAPI.__dict__ = APIsettings    
         self.cache = {}
-        
+        self.imageCache = {}
     def asinlookup(self, asin):
         """Look up a product via ASIN number and return a new Product object with the relevant
         details filled in.
@@ -42,13 +53,17 @@ class Amazon(object):
                     
         def fetchImage(amazonAPI, asin):
             try:
-                return amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="Images").find('mediumimage').find('url').string
+                if asin not in self.imageCache:
+                    img = amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="Images").find('mediumimage').find('url').string
+                    self.imageCache[asin] = img
+                else:
+                    return self.imageCache[asin] 
             except:
                 return "http://i.imgur.com/WDxVqYU.png"               
             
         dummyProduct = Product(name='Not Found',
                                 description='You viewed an Amazon product, but we were unable to match its ID in the database.')
-        
+
         if is_asin(asin) and len(asin) == 10:
             if asin not in self.cache:
                 try:
@@ -72,7 +87,6 @@ class Amazon(object):
                 else:
                     # Since an automated process is providing the ASINs, fail silently instead of
                     # raising an exception as matches aren't guaranteed to be 100% accurate.
-
                     return dummyProduct
             else:
                 return self.cache[asin]        

@@ -647,11 +647,15 @@ class LeakResults(object):
         combined = self.finished['combined']
         
         # TODO: These categories are pretty arbitrary for right now. 
+        if self.leaks.get('http-queries'):
+            raw_history = sorted(self.leaks.get('http-queries'), key=lambda entry: float(entry[2]))
+        else:
+            raw_history = []    
         self._export = {
             'services': [svc for svc in combined if type(svc) == Service],
             'history': {'domains': [dom for dom in combined if type(dom) == Domain],
                         'page-titles': self.finished.get('html-titles'),
-                        'raw-history': sorted(self.leaks.get('http-queries'), key=lambda entry: float(entry[2])),
+                        'raw-history': raw_history,
                         'grouped-history': self.finished.get('http-queries-grouped')},
             'email': {k:self.finished[k] for k in self.available_keys('email')},
             'files': {k:self.finished[k] for k in self.available_keys('files')},
