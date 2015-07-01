@@ -15,10 +15,10 @@ class Amazon(object):
             'AWSAccessKeyId': '',
             'AWSSecretAccessKey': '',
             'AssociateTag': 'cmuld-20',
-            'CacheReader': None,
-            'CacheWriter': None,
+            'CacheReader': self.read_cache,
+            'CacheWriter': self.write_cache,
             'ErrorHandler': None,
-            'MaxQPS': 2,
+            'MaxQPS': 0.95,
             'Operation': None,
             'Parser': None,
             'Region': 'US',
@@ -30,7 +30,16 @@ class Amazon(object):
         APIsettings['Parser'] = BeautifulSoup
         self.amazonAPI.__dict__ = APIsettings    
         self.cache = {}
-        self.imageCache = {}
+
+    def write_cache(self, url, data):
+        self.cache[url] = data
+
+    def read_cache(self, url):
+        if url in self.cache:
+            return self.cache[url]
+        else:
+            return None
+
     def asinlookup(self, asin):
         """Look up a product via ASIN number and return a new Product object with the relevant
         details filled in.
@@ -53,43 +62,37 @@ class Amazon(object):
                     
         def fetchImage(amazonAPI, asin):
             try:
-                if asin not in self.imageCache:
-                    img = amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="Images").find('mediumimage').find('url').string
-                    self.imageCache[asin] = img
-                else:
-                    return self.imageCache[asin] 
+                img = amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="Images").find('mediumimage').find('url').string
+                return img
             except:
-                return "http://i.imgur.com/WDxVqYU.png"               
+                return "http://i.imgur.com/WDxVqYU.png"                                
             
         dummyProduct = Product(name='Not Found',
                                 description='You viewed an Amazon product, but we were unable to match its ID in the database.')
 
         if is_asin(asin) and len(asin) == 10:
-            if asin not in self.cache:
+            try:
+                item = self.amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="ItemAttributes")
+                itemattr = lambda tag: item.find(tag).text
+            except:
+                return dummyProduct
+                
+            # Response will contain an <error> tag if there is a problem
+            if not item.find('error'): 
+                attrtags = ['title', 'formattedprice', 'brand']
+                name, price, vendor = [item.find(attr).text if item.find(attr) else "n/a" for attr in attrtags]
                 try:
-                    item = self.amazonAPI.ItemLookup(ItemId=asin, ResponseGroup="ItemAttributes")
-                    itemattr = lambda tag: item.find(tag).text
+                    category = "%s > %s" % (itemattr('binding'), itemattr('productgroup'))
                 except:
-                    return dummyProduct
+                    category = "Amazon product"
                     
-                # Response will contain an <error> tag if there is a problem
-                if not item.find('error'): 
-                    attrtags = ['title', 'formattedprice', 'brand']
-                    name, price, vendor = [item.find(attr).text if item.find(attr) else "n/a" for attr in attrtags]
-                    try:
-                        category = "%s > %s" % (itemattr('binding'), itemattr('productgroup'))
-                    except:
-                        category = "Amazon product"
-                        
-                    product = Product(name, price=price, vendor=vendor, description=category, image=fetchImage(self.amazonAPI, asin))
-                    self.cache[asin] = product
-                    return product
-                else:
-                    # Since an automated process is providing the ASINs, fail silently instead of
-                    # raising an exception as matches aren't guaranteed to be 100% accurate.
-                    return dummyProduct
+                product = Product(name, price=price, vendor=vendor, description=category, image=fetchImage(self.amazonAPI, asin))
+                self.cache[asin] = product
+                return product
             else:
-                return self.cache[asin]        
+                # Since an automated process is providing the ASINs, fail silently instead of
+                # raising an exception as matches aren't guaranteed to be 100% accurate.
+                return dummyProduct
         else:
             return dummyProduct
                 
